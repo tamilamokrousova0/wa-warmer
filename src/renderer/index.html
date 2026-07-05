@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';" />
+  <title>WA Warmer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🔥 WA Warmer</div>
+    <div class="engine">
+      <span id="gowaDot" class="dot dot-off"></span>
+      <span id="gowaText">движок: запуск…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="col">
+      <div class="card">
+        <div class="card-head">
+          <h2>Аккаунты</h2>
+          <button id="addBtn" class="btn btn-primary">+ Добавить</button>
+        </div>
+        <ul id="accountsList" class="accounts"></ul>
+        <p id="accountsEmpty" class="muted">Пока нет аккаунтов. Нажмите «Добавить» и отсканируйте QR в WhatsApp → Связанные устройства.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Настройки прогрева</h2></div>
+        <div class="grid">
+          <label>Задержка мин (сек)<input id="minDelay" type="number" min="5" /></label>
+          <label>Задержка макс (сек)<input id="maxDelay" type="number" min="5" /></label>
+          <label>Дневной лимит / аккаунт<input id="dailyCap" type="number" min="1" /></label>
+          <label>Дней разгона (ramp-up)<input id="rampUpDays" type="number" min="1" /></label>
+          <label>Активность с (час)<input id="activeStart" type="number" min="0" max="23" /></label>
+          <label>Активность до (час)<input id="activeEnd" type="number" min="0" max="23" /></label>
+          <label class="check"><input id="imagesEnabled" type="checkbox" /> Картинки</label>
+          <label class="check"><input id="linksEnabled" type="checkbox" /> Ссылки</label>
+        </div>
+        <div class="actions">
+          <button id="startBtn" class="btn btn-start" disabled>▶ Старт</button>
+          <button id="stopBtn" class="btn btn-stop" disabled>■ Стоп</button>
+          <span id="warmState" class="muted">остановлено</span>
+        </div>
+        <p class="disclaimer">⚠️ Автопереписка нарушает условия WhatsApp и может привести к блокировке номеров. Используйте только свои аккаунты, на свой риск.</p>
+      </div>
+    </section>
+
+    <section class="col">
+      <div class="card grow">
+        <div class="card-head">
+          <h2>Журнал</h2>
+          <div class="filters">
+            <select id="logFilter">
+              <option value="all">все</option>
+              <option value="warming">прогрев</option>
+              <option value="gowa">движок</option>
+            </select>
+            <button id="clearLog" class="btn btn-ghost">очистить</button>
+          </div>
+        </div>
+        <div id="log" class="log"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- QR modal -->
+  <div id="qrModal" class="modal hidden">
+    <div class="modal-card">
+      <h3>Добавление аккаунта</h3>
+      <label class="labelfield">Название
+        <input id="qrLabel" type="text" placeholder="Например: Аккаунт A" />
+      </label>
+      <div id="qrStage" class="qr-stage hidden">
+        <div id="qrBox" class="qr-box"><span class="muted">получаем QR…</span></div>
+        <p class="muted">Откройте WhatsApp → Настройки → Связанные устройства → Привязать устройство и отсканируйте код.</p>
+      </div>
+      <div class="modal-actions">
+        <button id="qrStart" class="btn btn-primary">Получить QR</button>
+        <button id="qrClose" class="btn btn-ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

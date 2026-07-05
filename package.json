@@ -1,0 +1,26 @@
+{
+  "name": "wa-warmer",
+  "version": "1.0.0",
+  "description": "Portable WhatsApp account warmer with embedded GOWA engine",
+  "author": "WA Warmer",
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "scripts": {
+    "fetch-gowa": "node scripts/fetch-gowa.mjs",
+    "seed-content": "node scripts/seed-content.mjs",
+    "prestart": "node scripts/ensure-assets.mjs",
+    "start": "electron .",
+    "prebuild": "node scripts/ensure-assets.mjs",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:win": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "adm-zip": "^0.5.16",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}

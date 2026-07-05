@@ -1,0 +1,40 @@
+appId: com.wawarmer.app
+productName: WA Warmer
+directories:
+  output: dist
+  buildResources: build
+files:
+  - "src/**"
+  - "package.json"
+  - "!**/*.map"
+asar: true
+mac:
+  target:
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.utilities
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  extraResources:
+    - from: resources/gowa/mac-${arch}
+      to: gowa/mac-${arch}
+      filter: ["**/*"]
+    - from: resources/content-pack
+      to: content-pack
+      filter: ["**/*"]
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  extraResources:
+    - from: resources/gowa/win-${arch}
+      to: gowa/win-${arch}
+      filter: ["**/*"]
+    - from: resources/content-pack
+      to: content-pack
+      filter: ["**/*"]
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}

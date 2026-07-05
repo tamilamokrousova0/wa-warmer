@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/
+resources/gowa/
+.DS_Store
+*.log
+.claude/settings.local.json

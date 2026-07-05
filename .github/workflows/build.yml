@@ -1,0 +1,74 @@
+name: Build portable apps
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # needed to publish a Release on tags
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: mac
+            fetch: npm run fetch-gowa           # mac build needs both x64 + arm64
+            build: npm run build:mac
+            artifact: "dist/*.zip"
+          - os: windows-latest
+            name: win
+            fetch: npm run fetch-gowa -- --current  # only win-x64 needed
+            build: npm run build:win
+            artifact: "dist/*.exe"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # prebuild hook does NOT run for build:mac / build:win, and the mac build
+      # needs BOTH arch binaries, so fetch all GOWA binaries explicitly.
+      - name: Fetch GOWA binaries
+        run: ${{ matrix.fetch }}
+
+      - name: Seed content pack
+        run: npm run seed-content
+
+      - name: Build portable app
+        run: ${{ matrix.build }}
+        env:
+          # unsigned builds; never let electron-builder auto-publish here
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          EP_PRE_RELEASE: "false"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wa-warmer-${{ matrix.name }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish to Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}
+          fail_on_unmatched_files: true
