@@ -1,9 +1,10 @@
 'use strict';
 const path = require('node:path');
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, Notification } = require('electron');
 const gowa = require('./gowaManager');
 const ipc = require('./ipc');
 const scheduler = require('./scheduler');
+const content = require('./contentPack');
 const client = require('./gowaClient');
 const store = require('./accountStore');
 const log = require('./logbus');
@@ -53,8 +54,18 @@ async function reconnectAccounts() {
   }
 }
 
+function notify(title, body) {
+  try {
+    if (Notification.isSupported()) new Notification({ title, body }).show();
+  } catch { /* ignore */ }
+}
+
 async function boot() {
+  content.ensure(); // create data/content-pack/ with empty messages.txt, links.txt, images/
   ipc.register(getWindow);
+  scheduler.events.on('loggedOut', ({ label }) => {
+    notify('WA Warmer — аккаунт отключён', `"${label}" вышел из сети (возможен logout или бан).`);
+  });
   createWindow();
   try {
     await gowa.start();

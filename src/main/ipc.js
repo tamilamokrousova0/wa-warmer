@@ -1,12 +1,16 @@
 'use strict';
 // Wires ipcMain handlers (renderer -> main) and forwards main-side events
 // (login/log/warming/gowa) to the renderer.
-const { ipcMain } = require('electron');
+const fs = require('node:fs');
+const path = require('node:path');
+const { ipcMain, dialog } = require('electron');
 const store = require('./accountStore');
 const client = require('./gowaClient');
 const loginFlow = require('./loginFlow');
 const scheduler = require('./scheduler');
 const gowa = require('./gowaManager');
+const content = require('./contentPack');
+const paths = require('./paths');
 const log = require('./logbus');
 
 function accountsView() {
@@ -17,6 +21,9 @@ function accountsView() {
     jid: a.jid,
     connected: !!a.connected,
     sentToday: store.sentToday(a.deviceId),
+    days: store.daysWarming(a),
+    sent: a.sentTotal || 0,
+    received: a.receivedTotal || 0,
     addedAt: a.addedAt,
   }));
 }
@@ -65,6 +72,27 @@ function register(getWindow) {
   ipcMain.handle('gowa:status', () => gowa.info());
   ipcMain.handle('log:history', () => log.history());
 
+  // ---- content management ----
+  ipcMain.handle('content:counts', () => content.counts());
+  ipcMain.handle('content:reload', () => content.reload() && content.counts());
+  ipcMain.handle('content:openFolder', () => content.openFolder());
+  ipcMain.handle('content:addImages', async () => {
+    const win = getWindow();
+    const res = await dialog.showOpenDialog(win, {
+      title: 'Выберите картинки для пересылки',
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Изображения', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'] }],
+    });
+    if (res.canceled) return content.counts();
+    const dir = paths.contentImagesDir();
+    fs.mkdirSync(dir, { recursive: true });
+    for (const src of res.filePaths) {
+      try { fs.copyFileSync(src, path.join(dir, path.basename(src))); } catch (e) { log.warn('content', e.message); }
+    }
+    content.reload();
+    return content.counts();
+  });
+
   // ---- main -> renderer ----
   log.on((line) => send('log:line', line));
 
@@ -76,6 +104,7 @@ function register(getWindow) {
   scheduler.events.on('tick', (p) => send('warming:tick', p));
   scheduler.events.on('state', (p) => send('warming:state', p));
   scheduler.events.on('accountsChanged', () => send('accounts:updated', accountsView()));
+  scheduler.events.on('loggedOut', (p) => { send('account:loggedOut', p); send('accounts:updated', accountsView()); });
 
   gowa.state.on('state', (p) => send('gowa:state', p));
 }

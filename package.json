@@ -1,13 +1,13 @@
 {
   "name": "wa-warmer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Portable WhatsApp account warmer with embedded GOWA engine",
   "author": "WA Warmer",
   "license": "MIT",
   "main": "src/main/main.js",
   "scripts": {
     "fetch-gowa": "node scripts/fetch-gowa.mjs",
-    "seed-content": "node scripts/seed-content.mjs",
+    "icon": "node scripts/generate-icon.mjs",
     "prestart": "node scripts/ensure-assets.mjs",
     "start": "electron .",
     "prebuild": "node scripts/ensure-assets.mjs",

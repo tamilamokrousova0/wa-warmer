@@ -65,6 +65,17 @@ const loginWithCode = (deviceId, phone) =>
 const status = (deviceId) => request('GET', '/app/status', { deviceId });
 const logout = (deviceId) => request('GET', '/app/logout', { deviceId });
 
+// full JID form required by presence/read endpoints
+const toJid = (phone) => (String(phone).includes('@') ? String(phone) : `${phone}@s.whatsapp.net`);
+
+// --- presence / typing / read (realism) ---
+const chatPresence = (deviceId, phone, action /* 'start' | 'stop' */) =>
+  request('POST', '/send/chat-presence', { deviceId, json: { phone: toJid(phone), action } });
+const presence = (deviceId, type /* 'available' | 'unavailable' */) =>
+  request('POST', '/send/presence', { deviceId, json: { type } });
+const markRead = (deviceId, messageId, phone) =>
+  request('POST', `/message/${encodeURIComponent(messageId)}/read`, { deviceId, json: { phone: toJid(phone) } });
+
 // --- sending ---
 const sendMessage = (deviceId, phone, message) =>
   request('POST', '/send/message', { deviceId, json: { phone, message } });
@@ -92,6 +103,9 @@ module.exports = {
   loginWithCode,
   status,
   logout,
+  chatPresence,
+  presence,
+  markRead,
   sendMessage,
   sendImage,
 };

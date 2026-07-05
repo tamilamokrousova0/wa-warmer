@@ -48,8 +48,8 @@ jobs:
       - name: Fetch GOWA binaries
         run: ${{ matrix.fetch }}
 
-      - name: Seed content pack
-        run: npm run seed-content
+      - name: Generate app icon
+        run: npm run icon
 
       - name: Build portable app
         run: ${{ matrix.build }}

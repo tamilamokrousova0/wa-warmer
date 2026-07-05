@@ -21,9 +21,6 @@ mac:
     - from: resources/gowa/mac-${arch}
       to: gowa/mac-${arch}
       filter: ["**/*"]
-    - from: resources/content-pack
-      to: content-pack
-      filter: ["**/*"]
 win:
   target:
     - target: portable
@@ -32,9 +29,6 @@ win:
   extraResources:
     - from: resources/gowa/win-${arch}
       to: gowa/win-${arch}
-      filter: ["**/*"]
-    - from: resources/content-pack
-      to: content-pack
       filter: ["**/*"]
 portable:
   artifactName: ${productName}-${version}-portable.${ext}

@@ -27,10 +27,23 @@
       </div>
 
       <div class="card">
+        <div class="card-head"><h2>Контент</h2></div>
+        <div class="content-row">
+          <span id="contentCounts" class="muted">сообщений: 0 · ссылок: 0 · картинок: 0</span>
+        </div>
+        <div class="content-actions">
+          <button id="openContent" class="btn">📂 Открыть папку</button>
+          <button id="addImages" class="btn">🖼 Добавить картинки</button>
+          <button id="reloadContent" class="btn btn-ghost">↻ Обновить</button>
+        </div>
+        <p class="muted small">Тексты — в <code>messages.txt</code> (по одному на строку), ссылки — в <code>links.txt</code>, картинки — в папке <code>images/</code>. Поддерживается вариативность: <code>{Привет|Хай} {друг|дружище}</code>.</p>
+      </div>
+
+      <div class="card">
         <div class="card-head"><h2>Настройки прогрева</h2></div>
         <div class="grid">
-          <label>Задержка мин (сек)<input id="minDelay" type="number" min="5" /></label>
-          <label>Задержка макс (сек)<input id="maxDelay" type="number" min="5" /></label>
+          <label>Пауза между диалогами, мин (от)<input id="minDelayMin" type="number" min="1" /></label>
+          <label>Пауза между диалогами, мин (до)<input id="maxDelayMin" type="number" min="1" /></label>
           <label>Дневной лимит / аккаунт<input id="dailyCap" type="number" min="1" /></label>
           <label>Дней разгона (ramp-up)<input id="rampUpDays" type="number" min="1" /></label>
           <label>Активность с (час)<input id="activeStart" type="number" min="0" max="23" /></label>

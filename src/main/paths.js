@@ -25,10 +25,6 @@ function gowaBinaryPath() {
   return path.join(resourcesRoot(), 'gowa', platformKey, exeName);
 }
 
-function contentPackDir() {
-  return path.join(resourcesRoot(), 'content-pack');
-}
-
 function isWritable(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true });
@@ -84,17 +80,34 @@ function configFile() {
   return path.join(dataDir(), 'config.json');
 }
 
+// User-editable content lives next to the app so it's easy to manage.
+function contentDir() {
+  return path.join(dataDir(), 'content-pack');
+}
+function messagesFile() {
+  return path.join(contentDir(), 'messages.txt');
+}
+function linksFile() {
+  return path.join(contentDir(), 'links.txt');
+}
+function contentImagesDir() {
+  return path.join(contentDir(), 'images');
+}
+
 module.exports = {
   platformKey,
   osToken,
   exeName,
   resourcesRoot,
   gowaBinaryPath,
-  contentPackDir,
   portableRoot,
   dataDir,
   gowaDbPath,
   gowaKeysDbPath,
   accountsFile,
   configFile,
+  contentDir,
+  messagesFile,
+  linksFile,
+  contentImagesDir,
 };

@@ -21,6 +21,11 @@ contextBridge.exposeInMainWorld('api', {
   gowaStatus: () => ipcRenderer.invoke('gowa:status'),
   logHistory: () => ipcRenderer.invoke('log:history'),
 
+  contentCounts: () => ipcRenderer.invoke('content:counts'),
+  contentReload: () => ipcRenderer.invoke('content:reload'),
+  contentOpenFolder: () => ipcRenderer.invoke('content:openFolder'),
+  contentAddImages: () => ipcRenderer.invoke('content:addImages'),
+
   // events (main -> renderer); each returns an unsubscribe fn
   onQr: (fn) => on('login:qr', fn),
   onLoginSuccess: (fn) => on('login:success', fn),
@@ -31,4 +36,5 @@ contextBridge.exposeInMainWorld('api', {
   onWarmingTick: (fn) => on('warming:tick', fn),
   onWarmingState: (fn) => on('warming:state', fn),
   onGowaState: (fn) => on('gowa:state', fn),
+  onLoggedOut: (fn) => on('account:loggedOut', fn),
 });

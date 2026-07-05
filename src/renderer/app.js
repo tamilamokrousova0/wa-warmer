@@ -25,13 +25,15 @@ function renderAccounts(list) {
       <span class="meta">
         <div class="label"></div>
         <div class="phone"></div>
+        <div class="stats muted small"></div>
       </span>
-      <span class="count">${a.sentToday}↑</span>
       <button class="btn btn-ghost">Выйти</button>`;
     li.querySelector('.label').textContent = a.label || 'Аккаунт';
     li.querySelector('.phone').textContent = a.connected
       ? (a.phone ? '+' + a.phone : 'подключён')
       : 'нужен ре-логин';
+    li.querySelector('.stats').textContent =
+      `прогрев: день ${a.days ?? 1} · отправлено ${a.sent ?? 0} · принято ${a.received ?? 0}`;
     li.querySelector('button').onclick = async () => {
       if (confirm(`Отвязать «${a.label}»?`)) {
         await api.logoutAccount(a.deviceId);
@@ -57,8 +59,8 @@ function updateStartEnabled(list) {
 // ---------- config ----------
 async function loadConfig() {
   const c = await api.getConfig();
-  $('minDelay').value = c.minDelaySec;
-  $('maxDelay').value = c.maxDelaySec;
+  $('minDelayMin').value = c.minDelayMin;
+  $('maxDelayMin').value = c.maxDelayMin;
   $('dailyCap').value = c.dailyCap;
   $('rampUpDays').value = c.rampUpDays;
   $('activeStart').value = c.activeStartHour;
@@ -69,9 +71,9 @@ async function loadConfig() {
 
 function readConfig() {
   return {
-    minDelaySec: Math.max(5, +$('minDelay').value || 45),
-    maxDelaySec: Math.max(5, +$('maxDelay').value || 180),
-    dailyCap: Math.max(1, +$('dailyCap').value || 40),
+    minDelayMin: Math.max(1, +$('minDelayMin').value || 2),
+    maxDelayMin: Math.max(1, +$('maxDelayMin').value || 7),
+    dailyCap: Math.max(1, +$('dailyCap').value || 30),
     rampUpDays: Math.max(1, +$('rampUpDays').value || 5),
     activeStartHour: Math.min(23, Math.max(0, +$('activeStart').value || 0)),
     activeEndHour: Math.min(23, Math.max(0, +$('activeEnd').value || 23)),
@@ -83,7 +85,7 @@ function readConfig() {
 async function saveConfig() {
   await api.setConfig(readConfig());
 }
-['minDelay', 'maxDelay', 'dailyCap', 'rampUpDays', 'activeStart', 'activeEnd', 'imagesEnabled', 'linksEnabled']
+['minDelayMin', 'maxDelayMin', 'dailyCap', 'rampUpDays', 'activeStart', 'activeEnd', 'imagesEnabled', 'linksEnabled']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- warming ----------
@@ -143,6 +145,19 @@ api.onLoginTimeout(({ deviceId }) => {
 api.onAccountsUpdated((list) => renderAccounts(list));
 api.onWarmingState(({ running }) => setWarmingState(running));
 api.onGowaState((s) => setGowa(s));
+api.onLoggedOut(({ label }) => {
+  const line = { ts: Date.now(), tag: 'warming', level: 'warn', msg: `⚠ аккаунт "${label}" отключился (logout/бан)` };
+  appendLog(line);
+});
+
+// ---------- content ----------
+function renderCounts(c) {
+  $('contentCounts').textContent = `сообщений: ${c.messages} · ссылок: ${c.links} · картинок: ${c.images}`;
+}
+async function refreshContent() { renderCounts(await api.contentCounts()); }
+$('openContent').onclick = () => api.contentOpenFolder();
+$('reloadContent').onclick = async () => renderCounts(await api.contentReload());
+$('addImages').onclick = async () => renderCounts(await api.contentAddImages());
 
 function setGowa(s) {
   gowaReady = !!s.ready;
@@ -197,6 +212,7 @@ api.onWarmingTick((t) => {
 // ---------- boot ----------
 (async function init() {
   await loadConfig();
+  await refreshContent();
   await refreshAccounts();
   try {
     const g = await api.gowaStatus();

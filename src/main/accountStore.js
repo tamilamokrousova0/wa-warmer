@@ -81,6 +81,14 @@ function bumpSent(deviceId) {
   if (!a) return;
   const d = ensureDaily(a);
   d.count += 1;
+  a.sentTotal = (a.sentTotal || 0) + 1;
+  saveAccounts();
+}
+
+function bumpReceived(deviceId) {
+  const a = get(deviceId);
+  if (!a) return;
+  a.receivedTotal = (a.receivedTotal || 0) + 1;
   saveAccounts();
 }
 
@@ -90,15 +98,21 @@ function sentToday(deviceId) {
   return ensureDaily(a).count;
 }
 
+// full days since the account was added (1 on the first day)
+function daysWarming(a) {
+  const ms = Date.now() - (a.addedAt || Date.now());
+  return Math.floor(ms / 86400000) + 1;
+}
+
 // ---- config ----
 const DEFAULT_CONFIG = {
-  minDelaySec: 45,
-  maxDelaySec: 180,
+  minDelayMin: 2, // gap between conversations, in MINUTES
+  maxDelayMin: 7,
   imagesEnabled: true,
   linksEnabled: true,
-  dailyCap: 40,
+  dailyCap: 30, // outgoing messages per account per day
   rampUpDays: 5,
-  activeStartHour: 9,
+  activeStartHour: 9, // local system time
   activeEndHour: 23,
 };
 
@@ -119,7 +133,9 @@ module.exports = {
   remove,
   setConnected,
   bumpSent,
+  bumpReceived,
   sentToday,
+  daysWarming,
   ensureDaily,
   loadConfig,
   saveConfig,

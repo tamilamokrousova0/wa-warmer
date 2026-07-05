@@ -108,6 +108,12 @@ body {
 .filters { display: flex; gap: 8px; align-items: center; }
 .filters select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px; }
 
+.small { font-size: 11px; }
+.acct .stats { margin-top: 2px; }
+.content-row { margin-bottom: 8px; }
+.content-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+code { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
 .modal.hidden { display: none; }
 .modal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 380px; }

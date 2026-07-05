@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Runs before `start` / `build` to make sure the content pack and the GOWA
-// binary for the current host are present. Seeds content, and fetches the
-// host GOWA binary if missing (build:mac/build:win fetch all arches separately).
+// Runs before `start` / `build`: makes sure the app icon and the host GOWA
+// binary are present. (User content is created by the app at runtime in
+// data/content-pack/, so nothing to seed here.)
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,10 +15,10 @@ function node(script, args = []) {
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 
-// 1) content pack
-if (!fs.existsSync(path.join(ROOT, 'resources', 'content-pack', 'content.json'))) {
-  console.log('[ensure-assets] seeding content pack...');
-  node('seed-content.mjs');
+// 1) app icon
+if (!fs.existsSync(path.join(ROOT, 'build', 'icon.png'))) {
+  console.log('[ensure-assets] generating app icon...');
+  node('generate-icon.mjs');
 }
 
 // 2) GOWA binary for the host platform (folder key matches electron-builder ${os})
