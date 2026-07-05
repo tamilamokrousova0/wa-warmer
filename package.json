@@ -11,9 +11,9 @@
     "prestart": "node scripts/ensure-assets.mjs",
     "start": "electron .",
     "prebuild": "node scripts/ensure-assets.mjs",
-    "build": "electron-builder",
-    "build:mac": "electron-builder --mac --x64 --arm64",
-    "build:win": "electron-builder --win --x64"
+    "build": "electron-builder --publish never",
+    "build:mac": "electron-builder --mac --x64 --arm64 --publish never",
+    "build:win": "electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "qrcode": "^1.5.4"
