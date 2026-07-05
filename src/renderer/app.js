@@ -1,4 +1,7 @@
 'use strict';
+// Wrapped in an IIFE: contextBridge exposes `api` as a global, so a top-level
+// `const api` in global scope would throw "Identifier 'api' has already been declared".
+(() => {
 const $ = (id) => document.getElementById(id);
 const api = window.api;
 
@@ -201,4 +204,5 @@ api.onWarmingTick((t) => {
   } catch { /* ignore */ }
   const hist = await api.logHistory();
   hist.forEach((l) => appendLog(l));
+})();
 })();
