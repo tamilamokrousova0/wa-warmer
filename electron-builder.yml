@@ -8,6 +8,7 @@ files:
   - "package.json"
   - "!**/*.map"
 asar: true
+afterPack: scripts/afterPack.js
 mac:
   target:
     - target: zip
