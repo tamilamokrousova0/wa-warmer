@@ -9,60 +9,59 @@
 <body>
   <header class="topbar">
     <div class="brand">🔥 WA Warmer</div>
-    <div class="engine">
-      <span id="gowaDot" class="dot dot-off"></span>
-      <span id="gowaText">движок: запуск…</span>
+    <div class="summary">
+      <span id="sumAccounts" class="chip">0 / 0 онлайн</span>
+      <span id="sumTraffic" class="chip">↑0 ↓0</span>
+      <span class="engine"><span id="gowaDot" class="dot dot-off"></span><span id="gowaText">запуск…</span></span>
+    </div>
+    <div class="run-controls">
+      <span id="warmState" class="muted">остановлено</span>
+      <button id="startBtn" class="btn btn-start" disabled>▶ Старт</button>
+      <button id="stopBtn" class="btn btn-stop" disabled>■ Стоп</button>
     </div>
   </header>
 
   <main class="layout">
-    <section class="col">
-      <div class="card">
+    <section class="col col-accounts">
+      <div class="card grow">
         <div class="card-head">
-          <h2>Аккаунты</h2>
-          <button id="addBtn" class="btn btn-primary">+ Добавить</button>
+          <h2>Аккаунты <span id="acctCount" class="muted small"></span></h2>
+          <div class="head-actions">
+            <input id="acctFilter" class="filter-input" type="text" placeholder="фильтр…" />
+            <button id="addBtn" class="btn btn-primary">+ Добавить</button>
+          </div>
         </div>
         <ul id="accountsList" class="accounts"></ul>
-        <p id="accountsEmpty" class="muted">Пока нет аккаунтов. Нажмите «Добавить» и отсканируйте QR в WhatsApp → Связанные устройства.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Контент</h2></div>
-        <div class="content-row">
-          <span id="contentCounts" class="muted">сообщений: 0 · ссылок: 0 · картинок: 0</span>
-        </div>
-        <div class="content-actions">
-          <button id="openContent" class="btn">📂 Открыть папку</button>
-          <button id="addImages" class="btn">🖼 Добавить картинки</button>
-          <button id="reloadContent" class="btn btn-ghost">↻ Обновить</button>
-        </div>
-        <p class="muted small">Тексты — в <code>messages.txt</code> (по одному на строку), ссылки — в <code>links.txt</code>, картинки — в папке <code>images/</code>. Поддерживается вариативность: <code>{Привет|Хай} {друг|дружище}</code>.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-head"><h2>Настройки прогрева</h2></div>
-        <div class="grid">
-          <label>Пауза между диалогами, мин (от)<input id="minDelayMin" type="number" min="1" /></label>
-          <label>Пауза между диалогами, мин (до)<input id="maxDelayMin" type="number" min="1" /></label>
-          <label>Дневной лимит / аккаунт<input id="dailyCap" type="number" min="1" /></label>
-          <label>Дней разгона (ramp-up)<input id="rampUpDays" type="number" min="1" /></label>
-          <label>Активность с (час)<input id="activeStart" type="number" min="0" max="23" /></label>
-          <label>Активность до (час)<input id="activeEnd" type="number" min="0" max="23" /></label>
-          <label class="check"><input id="imagesEnabled" type="checkbox" /> Картинки</label>
-          <label class="check"><input id="linksEnabled" type="checkbox" /> Ссылки</label>
-        </div>
-        <div class="actions">
-          <button id="startBtn" class="btn btn-start" disabled>▶ Старт</button>
-          <button id="stopBtn" class="btn btn-stop" disabled>■ Стоп</button>
-          <span id="warmState" class="muted">остановлено</span>
-        </div>
-        <p class="disclaimer">⚠️ Автопереписка нарушает условия WhatsApp и может привести к блокировке номеров. Используйте только свои аккаунты, на свой риск.</p>
+        <p id="accountsEmpty" class="muted small">Нет аккаунтов. «Добавить» → отсканируйте QR в WhatsApp → Связанные устройства.</p>
       </div>
     </section>
 
-    <section class="col">
+    <section class="col col-side">
+      <div class="card">
+        <div class="card-head compact"><h2>Настройки</h2></div>
+        <div class="grid">
+          <label>Пауза между диалогами, мин (от)<input id="minDelayMin" type="number" min="1" /></label>
+          <label>Пауза, мин (до)<input id="maxDelayMin" type="number" min="1" /></label>
+          <label>Дневной лимит / аккаунт<input id="dailyCap" type="number" min="1" /></label>
+          <label>Параллельных диалогов<input id="maxConcurrent" type="number" min="1" max="24" /></label>
+          <label>Дней разгона (ramp-up)<input id="rampUpDays" type="number" min="1" /></label>
+          <label>Активность с — до (час)<span class="hours"><input id="activeStart" type="number" min="0" max="23" /><input id="activeEnd" type="number" min="0" max="23" /></span></label>
+          <label class="check"><input id="imagesEnabled" type="checkbox" /> Картинки</label>
+          <label class="check"><input id="linksEnabled" type="checkbox" /> Ссылки</label>
+        </div>
+        <div class="content-line">
+          <span id="contentCounts" class="muted small">сообщений: 0 · ссылок: 0 · картинок: 0</span>
+          <span class="content-btns">
+            <button id="openContent" class="btn btn-mini">📂</button>
+            <button id="addImages" class="btn btn-mini">🖼</button>
+            <button id="reloadContent" class="btn btn-mini">↻</button>
+          </span>
+        </div>
+        <p class="disclaimer small">⚠️ Автопереписка нарушает условия WhatsApp и может привести к блокировке номеров. Только свои аккаунты, на свой риск.</p>
+      </div>
+
       <div class="card grow">
-        <div class="card-head">
+        <div class="card-head compact">
           <h2>Журнал</h2>
           <div class="filters">
             <select id="logFilter">
@@ -70,7 +69,7 @@
               <option value="warming">прогрев</option>
               <option value="gowa">движок</option>
             </select>
-            <button id="clearLog" class="btn btn-ghost">очистить</button>
+            <button id="clearLog" class="btn btn-mini">очистить</button>
           </div>
         </div>
         <div id="log" class="log"></div>
@@ -78,16 +77,13 @@
     </section>
   </main>
 
-  <!-- QR modal -->
   <div id="qrModal" class="modal hidden">
     <div class="modal-card">
       <h3>Добавление аккаунта</h3>
-      <label class="labelfield">Название
-        <input id="qrLabel" type="text" placeholder="Например: Аккаунт A" />
-      </label>
+      <label class="labelfield">Название<input id="qrLabel" type="text" placeholder="Например: Аккаунт A" /></label>
       <div id="qrStage" class="qr-stage hidden">
         <div id="qrBox" class="qr-box"><span class="muted">получаем QR…</span></div>
-        <p class="muted">Откройте WhatsApp → Настройки → Связанные устройства → Привязать устройство и отсканируйте код.</p>
+        <p class="muted small">WhatsApp → Настройки → Связанные устройства → Привязать устройство.</p>
       </div>
       <div class="modal-actions">
         <button id="qrStart" class="btn btn-primary">Получить QR</button>

@@ -1,8 +1,8 @@
 'use strict';
-// Warming engine. Instead of isolated messages it runs realistic back-and-forth
-// conversations between account pairs: typing indicators, read receipts, online
-// presence, text variation, and human-like pacing (random gaps, occasional
-// longer breaks, lighter weekends). Also detects logout/ban of accounts.
+// Warming engine, built to scale to many accounts (20/50/100+). Multiple
+// conversations run in parallel (workers), an account is never in two at once
+// (busy set), sender/partner are chosen fairly (least active first), and
+// connection state is polled in parallel on a separate timer.
 const { EventEmitter } = require('node:events');
 const client = require('./gowaClient');
 const store = require('./accountStore');
@@ -13,25 +13,38 @@ const events = new EventEmitter();
 
 let running = false;
 let config = null;
-let loopPromise = null;
-let wakeUp = null;
-const recentTexts = []; // rolling memory to avoid repeating the same line
+let activeCache = []; // logged-in accounts, refreshed by the poller
+const busy = new Set(); // deviceIds currently in a conversation
+const recentTexts = [];
+
+const stopBus = new EventEmitter();
+stopBus.setMaxListeners(200);
 
 const randInt = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
 const chance = (p) => Math.random() < p;
 
-function abortableSleep(ms) {
+// sleep that wakes early when warming stops (safe for many parallel callers)
+function sleep(ms) {
   return new Promise((resolve) => {
-    const t = setTimeout(() => { wakeUp = null; resolve(); }, ms);
-    wakeUp = () => { clearTimeout(t); wakeUp = null; resolve(); };
+    const done = () => { clearTimeout(t); stopBus.off('stop', done); resolve(); };
+    const t = setTimeout(done, ms);
+    stopBus.once('stop', done);
   });
+}
+
+async function mapLimit(items, limit, fn) {
+  let i = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length && running) { const idx = i++; await fn(items[idx], idx); }
+  });
+  await Promise.all(runners);
 }
 
 function inActiveHours(cfg) {
   const h = new Date().getHours();
   const { activeStartHour: s, activeEndHour: e } = cfg;
   if (s === e) return true;
-  return s < e ? h >= s && h < e : h >= s || h < e; // supports overnight windows
+  return s < e ? h >= s && h < e : h >= s || h < e;
 }
 
 function effectiveCap(acc, cfg) {
@@ -39,146 +52,147 @@ function effectiveCap(acc, cfg) {
   const day = Math.min(store.daysWarming(acc), ramp);
   let cap = Math.round((cfg.dailyCap || 1) * (day / ramp));
   const dow = new Date().getDay();
-  if (dow === 0 || dow === 6) cap = Math.round(cap * 0.7); // lighter weekends
+  if (dow === 0 || dow === 6) cap = Math.round(cap * 0.7);
   return Math.max(1, cap);
 }
 
-const remember = (src) => {
-  if (!src) return;
-  recentTexts.push(src);
-  while (recentTexts.length > 8) recentTexts.shift();
-};
+const remember = (src) => { if (src) { recentTexts.push(src); while (recentTexts.length > 12) recentTexts.shift(); } };
 
-// Re-verify connection state; detect connected -> disconnected (logout/ban).
+// ---- connection polling (parallel, on a timer) ----
 async function refreshActive() {
-  const active = [];
-  for (const a of store.all()) {
-    const wasConnected = !!a.connected;
+  const all = store.all();
+  await mapLimit(all, 20, async (a) => {
+    const was = !!a.connected;
     try {
       const st = await client.status(a.deviceId);
       const r = st.results || st;
       const loggedIn = !!r.is_logged_in;
       const phone = r.jid ? String(r.jid).split('@')[0].split(':')[0] : undefined;
-      if (loggedIn !== wasConnected || (r.jid && r.jid !== a.jid) || (phone && phone !== a.phone)) {
+      if (loggedIn !== was || (r.jid && r.jid !== a.jid) || (phone && phone !== a.phone)) {
         store.setConnected(a.deviceId, loggedIn, r.jid, phone);
       }
-      if (wasConnected && !loggedIn) {
-        log.warn('warming', `аккаунт "${a.label}" отключился (возможен logout/бан)`);
+      if (was && !loggedIn) {
+        log.warn('warming', `аккаунт "${a.label}" отключился (logout/бан)`);
         events.emit('loggedOut', { deviceId: a.deviceId, label: a.label });
       }
-      if (loggedIn) active.push(store.get(a.deviceId));
     } catch {
-      if (wasConnected) {
+      if (was) {
         store.setConnected(a.deviceId, false);
         events.emit('loggedOut', { deviceId: a.deviceId, label: a.label });
       }
     }
-  }
-  return active;
+  });
+  activeCache = store.all().filter((a) => a.connected && a.phone);
+  return activeCache;
 }
 
+async function pollLoop() {
+  while (running) {
+    try { await refreshActive(); } catch (e) { log.warn('warming', `poll: ${e.message}`); }
+    events.emit('accountsChanged');
+    await sleep(30000);
+  }
+}
+
+// ---- pair selection (fair + avoids busy accounts). Synchronous: caller marks busy. ----
+function pickPair(cfg) {
+  const free = activeCache.filter((a) => !busy.has(a.deviceId));
+  if (free.length < 2) return null;
+  const eligible = free
+    .filter((s) => store.sentToday(s.deviceId) < effectiveCap(s, cfg))
+    .sort((x, y) => store.sentToday(x.deviceId) - store.sentToday(y.deviceId));
+  if (eligible.length === 0) return null;
+  const sender = eligible[0]; // fewest sent today
+  const partners = free
+    .filter((a) => a.deviceId !== sender.deviceId)
+    .sort((x, y) => (x.receivedTotal || 0) - (y.receivedTotal || 0));
+  if (partners.length === 0) return null;
+  const partner = partners[randInt(0, Math.min(2, partners.length - 1))]; // among 3 least-received
+  return [sender, partner];
+}
+
+// ---- one message with typing + read receipt ----
 const msgId = (res) => res?.results?.message_id || res?.results?.id || null;
 
-// Send one message with a typing indicator; receiver reads it. Returns type sent.
 async function sendTurn(sender, receiver, cfg) {
   const item = content.pick(cfg, new Set(recentTexts));
-  if (!item) { log.warn('warming', 'нет контента для отправки (добавьте текст в messages.txt)'); return null; }
+  if (!item) return 'empty';
   remember(item.sourceText);
 
-  // typing indicator, paced by text length
   const typTarget = item.message || item.caption || '';
   const typMs = Math.min(8000, Math.max(1500, typTarget.length * randInt(45, 90)));
   try { await client.chatPresence(sender.deviceId, receiver.phone, 'start'); } catch { /* best effort */ }
-  await abortableSleep(typMs);
+  await sleep(typMs);
   try { await client.chatPresence(sender.deviceId, receiver.phone, 'stop'); } catch { /* best effort */ }
   if (!running) return null;
 
   let res;
-  if (item.type === 'image') {
-    res = await client.sendImage(sender.deviceId, receiver.phone, item.filePath, item.caption);
-  } else {
-    res = await client.sendMessage(sender.deviceId, receiver.phone, item.message);
-  }
+  if (item.type === 'image') res = await client.sendImage(sender.deviceId, receiver.phone, item.filePath, item.caption);
+  else res = await client.sendMessage(sender.deviceId, receiver.phone, item.message);
   store.bumpSent(sender.deviceId);
   store.bumpReceived(receiver.deviceId);
 
-  // receiver reads it after a short delay
   const id = msgId(res);
   if (id) {
     (async () => {
-      await abortableSleep(randInt(1200, 4000));
+      await sleep(randInt(1200, 4000));
       try { await client.markRead(receiver.deviceId, id, sender.phone); } catch { /* best effort */ }
     })();
   }
 
-  log.warming(`${sender.label} → ${receiver.label}: ${item.type}`);
   events.emit('tick', { ts: Date.now(), from: sender.label, to: receiver.label, type: item.type, ok: true });
   return item.type;
 }
 
-// A conversation: several alternating turns between A and B.
 async function runConversation(a, b, cfg) {
   const turns = randInt(2, 6);
-  for (const dev of [a, b]) {
-    try { await client.presence(dev.deviceId, 'available'); } catch { /* best effort */ }
-  }
-  let sender = a;
-  let receiver = b;
+  for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'available'); } catch { /* best */ } }
+  let sender = a; let receiver = b;
   for (let i = 0; i < turns && running; i++) {
-    if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break; // sender hit cap
+    if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break;
     try {
-      const ok = await sendTurn(sender, receiver, cfg);
-      if (ok === null) break;
+      const r = await sendTurn(sender, receiver, cfg);
+      if (r === null) break;
+      if (r === 'empty') { log.warn('warming', 'нет контента — добавьте тексты в messages.txt'); break; }
     } catch (e) {
       log.error('warming', `отправка ${sender.label}→${receiver.label}: ${e.message}`);
       break;
     }
-    [sender, receiver] = [receiver, sender]; // alternate direction
-    if (i < turns - 1 && running) await abortableSleep(randInt(2500, 7000)); // inter-turn pause
+    [sender, receiver] = [receiver, sender];
+    if (i < turns - 1 && running) await sleep(randInt(2500, 7000));
   }
-  for (const dev of [a, b]) {
-    try { await client.presence(dev.deviceId, 'unavailable'); } catch { /* best effort */ }
-  }
-  events.emit('accountsChanged');
+  for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'unavailable'); } catch { /* best */ } }
 }
 
-async function loop() {
+// ---- worker: repeatedly grab a free pair and run a conversation ----
+async function worker() {
   while (running) {
-    if (!inActiveHours(config)) {
-      log.warming('вне активных часов, пауза');
-      await abortableSleep(60000);
-      continue;
+    if (!inActiveHours(config)) { await sleep(60000); continue; }
+    if (activeCache.length < 2) { await sleep(10000); continue; }
+
+    const pair = pickPair(config); // synchronous grab
+    if (!pair) { await sleep(randInt(4000, 12000)); continue; }
+    const [a, b] = pair;
+    busy.add(a.deviceId); busy.add(b.deviceId);
+    try {
+      log.warming(`${a.label} ⇄ ${b.label}`);
+      await runConversation(a, b, config);
+    } catch (e) {
+      log.error('warming', `диалог: ${e.message}`);
+    } finally {
+      busy.delete(a.deviceId); busy.delete(b.deviceId);
+      events.emit('accountsChanged');
     }
-
-    const active = await refreshActive();
-    events.emit('accountsChanged');
-    if (active.length < 2) {
-      log.warming(`нужно ≥2 подключённых аккаунта (сейчас ${active.length}), жду`);
-      await abortableSleep(15000);
-      continue;
-    }
-
-    const eligible = active.filter((s) => store.sentToday(s.deviceId) < effectiveCap(s, config));
-    if (eligible.length === 0) {
-      log.warming('все аккаунты достигли дневного лимита, жду');
-      await abortableSleep(60000);
-      continue;
-    }
-
-    const a = eligible[randInt(0, eligible.length - 1)];
-    const partners = active.filter((x) => x.deviceId !== a.deviceId && x.phone);
-    if (partners.length === 0) { await abortableSleep(5000); continue; }
-    const b = partners[randInt(0, partners.length - 1)];
-
-    await runConversation(a, b, config);
     if (!running) break;
-
-    // human-like gap between conversations (minutes), with occasional longer break
-    let gapMs = randInt(config.minDelayMin, config.maxDelayMin) * 60000 + randInt(0, 4000);
-    if (chance(0.15)) gapMs *= randInt(2, 4);
-    log.warming(`следующий диалог через ~${Math.round(gapMs / 60000)} мин`);
-    await abortableSleep(gapMs);
+    let gap = randInt(config.minDelayMin, config.maxDelayMin) * 60000 + randInt(0, 4000);
+    if (chance(0.15)) gap *= randInt(2, 4);
+    await sleep(gap);
   }
+}
+
+function workerCount(cfg) {
+  const want = Math.max(1, cfg.maxConcurrent || 4);
+  return Math.min(want, 24); // hard cap; workers self-limit when few accounts are free
 }
 
 function start(cfg) {
@@ -186,19 +200,27 @@ function start(cfg) {
   config = { ...store.loadConfig(), ...(cfg || {}) };
   content.reload();
   running = true;
-  log.warming('прогрев запущен');
+  log.warming(`прогрев запущен (до ${workerCount(config)} диалогов параллельно)`);
   events.emit('state', { running: true });
-  loopPromise = loop().finally(() => {
-    running = false;
-    events.emit('state', { running: false });
-  });
+
+  refreshActive()
+    .then(() => {
+      const workers = Array.from({ length: workerCount(config) }, () => worker());
+      Promise.all([pollLoop(), ...workers]).finally(() => {
+        running = false;
+        events.emit('state', { running: false });
+      });
+    })
+    .catch((e) => { log.error('warming', `старт: ${e.message}`); running = false; events.emit('state', { running: false }); });
+
   return { running: true };
 }
 
 function stop() {
   if (!running) return { running: false };
   running = false;
-  if (wakeUp) wakeUp();
+  stopBus.emit('stop');
+  busy.clear();
   log.warming('прогрев остановлен');
   events.emit('state', { running: false });
   return { running: false };
@@ -217,7 +239,9 @@ function stats() {
     cap: effectiveCap(a, cfg),
   }));
   const connected = accounts.filter((a) => a.connected).length;
-  return { running, connected, pairsCount: connected * (connected - 1), perAccount };
+  const sentTotal = accounts.reduce((s, a) => s + (a.sentTotal || 0), 0);
+  const receivedTotal = accounts.reduce((s, a) => s + (a.receivedTotal || 0), 0);
+  return { running, connected, total: accounts.length, active: busy.size / 2, sentTotal, receivedTotal, perAccount };
 }
 
 module.exports = { events, start, stop, stats, isRunning: () => running };

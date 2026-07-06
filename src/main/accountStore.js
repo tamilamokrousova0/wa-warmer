@@ -114,6 +114,7 @@ const DEFAULT_CONFIG = {
   rampUpDays: 5,
   activeStartHour: 9, // local system time
   activeEndHour: 23,
+  maxConcurrent: 4, // parallel conversations (scales throughput for many accounts)
 };
 
 function loadConfig() {

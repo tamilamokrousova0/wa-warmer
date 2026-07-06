@@ -12,48 +12,55 @@ let logFilter = 'all';
 const logLines = [];
 
 // ---------- accounts ----------
-function renderAccounts(list) {
+let accountsCache = [];
+
+function accountRow(a) {
+  const li = document.createElement('li');
+  li.className = 'acct';
+  const dotClass = a.connected ? 'dot-on' : 'dot-err';
+  li.innerHTML = `
+    <span class="dot ${dotClass}"></span>
+    <span class="meta">
+      <span class="top"><span class="label"></span><span class="phone"></span></span>
+      <span class="stats"></span>
+    </span>
+    <button class="x" title="Отвязать">✕</button>`;
+  li.querySelector('.label').textContent = a.label || 'Аккаунт';
+  li.querySelector('.phone').textContent = a.connected ? (a.phone ? '+' + a.phone : 'онлайн') : 'нужен ре-логин';
+  li.querySelector('.stats').textContent = `день ${a.days ?? 1} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
+  li.querySelector('.x').onclick = async () => {
+    if (confirm(`Отвязать «${a.label}»?`)) { await api.logoutAccount(a.deviceId); await refreshAccounts(); }
+  };
+  return li;
+}
+
+function applyAccountFilter() {
+  const q = ($('acctFilter').value || '').trim().toLowerCase();
   const ul = $('accountsList');
   ul.innerHTML = '';
-  $('accountsEmpty').style.display = list.length ? 'none' : 'block';
-  for (const a of list) {
-    const li = document.createElement('li');
-    li.className = 'acct';
-    const dotClass = a.connected ? 'dot-on' : 'dot-err';
-    li.innerHTML = `
-      <span class="dot ${dotClass}"></span>
-      <span class="meta">
-        <div class="label"></div>
-        <div class="phone"></div>
-        <div class="stats muted small"></div>
-      </span>
-      <button class="btn btn-ghost">Выйти</button>`;
-    li.querySelector('.label').textContent = a.label || 'Аккаунт';
-    li.querySelector('.phone').textContent = a.connected
-      ? (a.phone ? '+' + a.phone : 'подключён')
-      : 'нужен ре-логин';
-    li.querySelector('.stats').textContent =
-      `прогрев: день ${a.days ?? 1} · отправлено ${a.sent ?? 0} · принято ${a.received ?? 0}`;
-    li.querySelector('button').onclick = async () => {
-      if (confirm(`Отвязать «${a.label}»?`)) {
-        await api.logoutAccount(a.deviceId);
-        await refreshAccounts();
-      }
-    };
-    ul.appendChild(li);
-  }
-  updateStartEnabled(list);
+  const list = q
+    ? accountsCache.filter((a) => (a.label || '').toLowerCase().includes(q) || (a.phone || '').includes(q))
+    : accountsCache;
+  $('accountsEmpty').style.display = accountsCache.length ? 'none' : 'block';
+  for (const a of list) ul.appendChild(accountRow(a));
 }
 
-async function refreshAccounts() {
-  const list = await api.listAccounts();
-  renderAccounts(list);
-}
-
-function updateStartEnabled(list) {
+function renderAccounts(list) {
+  accountsCache = list;
   const connected = list.filter((a) => a.connected).length;
+  const sent = list.reduce((s, a) => s + (a.sent || 0), 0);
+  const received = list.reduce((s, a) => s + (a.received || 0), 0);
+  $('sumAccounts').textContent = `${connected} / ${list.length} онлайн`;
+  $('sumTraffic').textContent = `↑${sent} ↓${received}`;
+  $('acctCount').textContent = list.length ? `(${list.length})` : '';
+  applyAccountFilter();
   $('startBtn').disabled = warmingRunning || !gowaReady || connected < 2;
   $('stopBtn').disabled = !warmingRunning;
+}
+$('acctFilter').addEventListener('input', applyAccountFilter);
+
+async function refreshAccounts() {
+  renderAccounts(await api.listAccounts());
 }
 
 // ---------- config ----------
@@ -62,6 +69,7 @@ async function loadConfig() {
   $('minDelayMin').value = c.minDelayMin;
   $('maxDelayMin').value = c.maxDelayMin;
   $('dailyCap').value = c.dailyCap;
+  $('maxConcurrent').value = c.maxConcurrent;
   $('rampUpDays').value = c.rampUpDays;
   $('activeStart').value = c.activeStartHour;
   $('activeEnd').value = c.activeEndHour;
@@ -74,6 +82,7 @@ function readConfig() {
     minDelayMin: Math.max(1, +$('minDelayMin').value || 2),
     maxDelayMin: Math.max(1, +$('maxDelayMin').value || 7),
     dailyCap: Math.max(1, +$('dailyCap').value || 30),
+    maxConcurrent: Math.min(24, Math.max(1, +$('maxConcurrent').value || 4)),
     rampUpDays: Math.max(1, +$('rampUpDays').value || 5),
     activeStartHour: Math.min(23, Math.max(0, +$('activeStart').value || 0)),
     activeEndHour: Math.min(23, Math.max(0, +$('activeEnd').value || 23)),
@@ -85,7 +94,7 @@ function readConfig() {
 async function saveConfig() {
   await api.setConfig(readConfig());
 }
-['minDelayMin', 'maxDelayMin', 'dailyCap', 'rampUpDays', 'activeStart', 'activeEnd', 'imagesEnabled', 'linksEnabled']
+['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd', 'imagesEnabled', 'linksEnabled']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- warming ----------
