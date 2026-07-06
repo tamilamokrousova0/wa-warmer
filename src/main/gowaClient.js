@@ -98,9 +98,6 @@ const sendMessage = (deviceId, phone, message, replyId) =>
     deviceId,
     json: replyId ? { phone, message, reply_message_id: replyId } : { phone, message },
   });
-const sendPoll = (deviceId, phone, question, options, maxAnswer = 1) =>
-  request('POST', '/send/poll', { deviceId, json: { phone, question, options, max_answer: maxAnswer } });
-
 const MIME = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif',
   '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav',
@@ -119,8 +116,6 @@ const sendImage = (deviceId, phone, filePath, caption = '') =>
   sendFileForm(deviceId, '/send/image', 'image', filePath, { phone, caption, compress: 'false' });
 const sendAudio = (deviceId, phone, filePath) =>
   sendFileForm(deviceId, '/send/audio', 'audio', filePath, { phone });
-const sendSticker = (deviceId, phone, filePath) =>
-  sendFileForm(deviceId, '/send/sticker', 'sticker', filePath, { phone });
 
 module.exports = {
   configure,
@@ -142,8 +137,6 @@ module.exports = {
   reaction,
   updateMessage,
   sendMessage,
-  sendPoll,
   sendImage,
   sendAudio,
-  sendSticker,
 };

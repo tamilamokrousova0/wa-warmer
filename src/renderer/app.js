@@ -132,8 +132,6 @@ async function loadConfig() {
   $('imagesEnabled').checked = c.imagesEnabled;
   $('linksEnabled').checked = c.linksEnabled;
   $('voiceEnabled').checked = c.voiceEnabled;
-  $('stickersEnabled').checked = c.stickersEnabled;
-  $('pollsEnabled').checked = c.pollsEnabled;
   $('textNoise').checked = c.textNoise;
 }
 
@@ -151,8 +149,6 @@ function readConfig() {
     imagesEnabled: $('imagesEnabled').checked,
     linksEnabled: $('linksEnabled').checked,
     voiceEnabled: $('voiceEnabled').checked,
-    stickersEnabled: $('stickersEnabled').checked,
-    pollsEnabled: $('pollsEnabled').checked,
     textNoise: $('textNoise').checked,
   };
 }
@@ -161,7 +157,7 @@ async function saveConfig() {
   await api.setConfig(readConfig());
 }
 ['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd',
-  'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'textNoise']
+  'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- warming ----------
@@ -333,7 +329,7 @@ api.onLoggedOut(({ label }) => {
 // ---------- content ----------
 function renderCounts(c) {
   $('contentCounts').textContent =
-    `сообщ: ${c.messages} · ссыл: ${c.links} · карт: ${c.images} · голос: ${c.voice ?? 0} · стик: ${c.stickers ?? 0} · опрос: ${c.polls ?? 0}`;
+    `сообщ: ${c.messages} · ссыл: ${c.links} · карт: ${c.images} · голос: ${c.voice ?? 0}`;
 }
 async function refreshContent() { renderCounts(await api.contentCounts()); }
 $('openContent').onclick = () => api.contentOpenFolder();

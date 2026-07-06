@@ -237,7 +237,7 @@ async function sendTurn(sender, receiver, cfg, replyId) {
   remember(item.sourceText);
 
   // typing indicator paced by text length (for text-like items)
-  const typTarget = item.message || item.caption || item.poll?.question || '';
+  const typTarget = item.message || item.caption || '';
   if (typTarget) {
     const typMs = Math.min(8000, Math.max(1500, typTarget.length * randInt(45, 90)));
     try { await client.chatPresence(sender.deviceId, receiver.phone, 'start'); } catch { /* best */ }
@@ -250,8 +250,6 @@ async function sendTurn(sender, receiver, cfg, replyId) {
   let sentType = item.type;
   if (item.type === 'image') res = await client.sendImage(sender.deviceId, receiver.phone, item.filePath, item.caption);
   else if (item.type === 'voice') res = await client.sendAudio(sender.deviceId, receiver.phone, item.filePath);
-  else if (item.type === 'sticker') res = await client.sendSticker(sender.deviceId, receiver.phone, item.filePath);
-  else if (item.type === 'poll') res = await client.sendPoll(sender.deviceId, receiver.phone, item.poll.question, item.poll.options);
   else {
     // text: occasionally send with a typo, then edit to fix (very human)
     const doTypo = item.message.length > 6 && chance(0.12);

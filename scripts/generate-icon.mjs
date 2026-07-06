@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Generates build/icon.png (1024x1024 RGBA) — a WhatsApp-green rounded square
-// with a white chat bubble and three "typing" dots. electron-builder derives
-// the mac .icns and win .ico from it automatically. Run: npm run icon
+// Generates build/icon.png (1024x1024 RGBA): a glowing flame ("прогрев") on a
+// dark rounded square. electron-builder derives the mac .icns and win .ico.
+// Run: npm run icon
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -16,57 +16,66 @@ function crc32(buf) { let c = 0xffffffff; for (let i = 0; i < buf.length; i++) c
 function chunk(type, data) { const len = Buffer.alloc(4); len.writeUInt32BE(data.length, 0); const body = Buffer.concat([Buffer.from(type, 'ascii'), data]); const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body), 0); return Buffer.concat([len, body, crc]); }
 function pngRGBA(w, h, rgba) {
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6; // RGBA
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
   const raw = Buffer.alloc((w * 4 + 1) * h); let o = 0;
   for (let y = 0; y < h; y++) { raw[o++] = 0; for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; raw[o++] = rgba[i]; raw[o++] = rgba[i + 1]; raw[o++] = rgba[i + 2]; raw[o++] = rgba[i + 3]; } }
   const idat = zlib.deflateSync(raw, { level: 9 });
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
 
-// signed distance to a rounded rectangle centered box [x0,y0,x1,y1], corner r
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
 function roundRectSDF(px, py, x0, y0, x1, y1, r) {
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  const hx = (x1 - x0) / 2 - r, hy = (y1 - y0) / 2 - r;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, hx = (x1 - x0) / 2 - r, hy = (y1 - y0) / 2 - r;
   const qx = Math.abs(px - cx) - hx, qy = Math.abs(py - cy) - hy;
-  const ax = Math.max(qx, 0), ay = Math.max(qy, 0);
-  return Math.hypot(ax, ay) + Math.min(Math.max(qx, qy), 0) - r;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - r;
 }
-function lerp(a, b, t) { return a + (b - a) * t; }
 
-// evaluate final color at normalized coords (0..1), supersampled outside
-function shade(u, v) {
-  // background rounded square (full-bleed with rounded corners)
-  const bg = roundRectSDF(u, v, 0.03, 0.03, 0.97, 0.97, 0.22);
-  if (bg > 0) return [0, 0, 0, 0];
-  // green vertical gradient
-  const t = Math.min(1, Math.max(0, (v - 0.03) / 0.94));
-  let col = [Math.round(lerp(37, 18, t)), Math.round(lerp(211, 140, t)), Math.round(lerp(102, 126, t)), 255];
-
-  // chat bubble (white) with a tail
-  const bubble = roundRectSDF(u, v, 0.24, 0.28, 0.76, 0.64, 0.10);
-  const inTail = v > 0.60 && v < 0.74 && u > 0.30 && u < 0.30 + (0.74 - v) * 1.1;
-  if (bubble < 0 || inTail) {
-    col = [255, 255, 255, 255];
-    // three "typing" dots
-    const dy = 0.46;
-    for (const dx of [0.37, 0.50, 0.63]) {
-      if (Math.hypot(u - dx, v - dy) < 0.035) col = [37, 180, 96, 255];
-    }
+// flame silhouette: rounded bulb at the bottom + a wobbly spike tapering to a tip
+function insideFlame(u, v, cx, cyB, R, tipY) {
+  const wobble = 0.028 * Math.sin((cyB - v) * Math.PI * 2.3); // slight flicker
+  if ((u - cx) ** 2 + (v - cyB) ** 2 <= R * R) return true; // bulb
+  if (v <= cyB && v >= tipY) {
+    const tt = (cyB - v) / (cyB - tipY); // 0 at bulb .. 1 at tip
+    const halfW = R * Math.pow(1 - tt, 0.8);
+    if (Math.abs(u - (cx + wobble * tt)) <= halfW) return true; // spike (tip leans a touch)
   }
-  return col;
+  return false;
 }
 
-const N = 1024, SS = 2;
+function shade(u, v) {
+  if (roundRectSDF(u, v, 0.03, 0.03, 0.97, 0.97, 0.22) > 0) return [0, 0, 0, 0]; // transparent corners
+  // dark charcoal background, a touch warmer at the top
+  const t = clamp((v - 0.03) / 0.94, 0, 1);
+  let col = [lerp(34, 14, t), lerp(24, 11, t), lerp(18, 9, t)];
+
+  // soft warm glow around the flame center
+  const gd = Math.hypot(u - 0.5, v - 0.6);
+  const glow = clamp(1 - gd / 0.42, 0, 1) ** 2 * 0.5;
+  col = [col[0] + glow * 200, col[1] + glow * 70, col[2] + glow * 10];
+
+  const outer = insideFlame(u, v, 0.5, 0.66, 0.205, 0.19);
+  if (outer) {
+    const ft = clamp((v - 0.19) / (0.865 - 0.19), 0, 1); // 0 top .. 1 bottom
+    col = [255, lerp(214, 88, ft), lerp(40, 0, ft)]; // yellow tip -> deep-orange base
+  }
+  if (insideFlame(u, v, 0.5, 0.68, 0.115, 0.37)) {
+    const it = clamp((v - 0.37) / (0.795 - 0.37), 0, 1);
+    col = [255, lerp(248, 150, it), lerp(190, 30, it)]; // bright core
+  }
+  return [Math.round(clamp(col[0], 0, 255)), Math.round(clamp(col[1], 0, 255)), Math.round(clamp(col[2], 0, 255)), 255];
+}
+
+const N = 1024, SS = 3;
 const rgba = Buffer.alloc(N * N * 4);
 for (let y = 0; y < N; y++) {
   for (let x = 0; x < N; x++) {
     let r = 0, g = 0, b = 0, a = 0;
     for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
-      const u = (x + (sx + 0.5) / SS) / N, v = (y + (sy + 0.5) / SS) / N;
-      const [cr, cg, cb, ca] = shade(u, v);
+      const [cr, cg, cb, ca] = shade((x + (sx + 0.5) / SS) / N, (y + (sy + 0.5) / SS) / N);
       r += cr * ca; g += cg * ca; b += cb * ca; a += ca;
     }
-    const n = SS * SS; const i = (y * N + x) * 4;
+    const n = SS * SS, i = (y * N + x) * 4;
     rgba[i] = a ? Math.round(r / a) : 0; rgba[i + 1] = a ? Math.round(g / a) : 0; rgba[i + 2] = a ? Math.round(b / a) : 0; rgba[i + 3] = Math.round(a / n);
   }
 }

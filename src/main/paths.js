@@ -96,12 +96,6 @@ function contentImagesDir() {
 function contentVoiceDir() {
   return path.join(contentDir(), 'voice');
 }
-function contentStickersDir() {
-  return path.join(contentDir(), 'stickers');
-}
-function pollsFile() {
-  return path.join(contentDir(), 'polls.txt');
-}
 function statsFile() {
   return path.join(dataDir(), 'stats.json');
 }
@@ -123,7 +117,5 @@ module.exports = {
   linksFile,
   contentImagesDir,
   contentVoiceDir,
-  contentStickersDir,
-  pollsFile,
   statsFile,
 };
