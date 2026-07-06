@@ -15,12 +15,14 @@ const sessions = new Map(); // deviceId -> { cancelled }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function extractQr(data) {
-  const r = data?.results || data?.result || data || {};
-  const code = r.qr_code || r.code || r.qr || data.code;
+  // GOWA returns { code: "SUCCESS", results: { qr_link } }. Prefer the image
+  // link; never fall back to the envelope's top-level `code` (it's "SUCCESS",
+  // which previously got rendered as a bogus QR).
+  const r = data?.results || data?.result || {};
   const link = r.qr_link || r.qrLink || r.image;
-  if (code && typeof code === 'string' && !/^https?:/i.test(code)) return { code };
   if (link) return { link };
-  if (code) return { link: code };
+  const code = r.qr_code || r.qr; // a real raw QR string, only if GOWA provides one
+  if (code && typeof code === 'string' && !/^https?:/i.test(code)) return { code };
   return null;
 }
 async function toDataUrl(qr) {
