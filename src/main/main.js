@@ -8,6 +8,7 @@ const content = require('./contentPack');
 const client = require('./gowaClient');
 const store = require('./accountStore');
 const webhook = require('./webhookServer');
+const paths = require('./paths');
 const log = require('./logbus');
 
 let mainWindow = null;
@@ -150,6 +151,7 @@ function notify(title, body) {
 }
 
 async function boot() {
+  log.info('app', `папка данных: ${paths.dataDir()}`);
   content.ensure(); // create data/content-pack/ with empty messages.txt, links.txt, images/
   ipc.register(getWindow);
   scheduler.events.on('loggedOut', ({ label }) => {

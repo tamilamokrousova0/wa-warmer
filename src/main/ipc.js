@@ -3,7 +3,7 @@
 // (login/log/warming/gowa) to the renderer.
 const fs = require('node:fs');
 const path = require('node:path');
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, shell } = require('electron');
 const store = require('./accountStore');
 const client = require('./gowaClient');
 const loginFlow = require('./loginFlow');
@@ -154,6 +154,8 @@ function register(getWindow) {
 
   ipcMain.handle('gowa:status', () => gowa.info());
   ipcMain.handle('log:history', () => log.history());
+  ipcMain.handle('open:dataFolder', () => shell.openPath(paths.dataDir()));
+  ipcMain.handle('data:path', () => paths.dataDir());
 
   // ---- content management ----
   ipcMain.handle('content:counts', () => content.counts());

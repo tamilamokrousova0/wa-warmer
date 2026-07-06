@@ -312,8 +312,12 @@ async function openStats() {
 }
 $('statsBtn').onclick = openStats;
 $('statsClose').onclick = () => $('statsModal').classList.add('hidden');
-$('helpBtn').onclick = () => $('helpModal').classList.remove('hidden');
+$('helpBtn').onclick = async () => {
+  $('helpModal').classList.remove('hidden');
+  try { $('dataPath').textContent = await api.dataPath(); } catch { /* ignore */ }
+};
 $('helpClose').onclick = () => $('helpModal').classList.add('hidden');
+$('openDataBtn').onclick = () => api.openDataFolder();
 $('statsExport').onclick = async () => {
   const r = await api.statsExportCsv();
   if (r && r.path) appendLog({ ts: Date.now(), tag: 'app', level: 'info', msg: `статистика сохранена: ${r.path}` });

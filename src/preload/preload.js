@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('api', {
   statsExportCsv: () => ipcRenderer.invoke('stats:exportCsv'),
   gowaStatus: () => ipcRenderer.invoke('gowa:status'),
   logHistory: () => ipcRenderer.invoke('log:history'),
+  openDataFolder: () => ipcRenderer.invoke('open:dataFolder'),
+  dataPath: () => ipcRenderer.invoke('data:path'),
 
   contentCounts: () => ipcRenderer.invoke('content:counts'),
   contentReload: () => ipcRenderer.invoke('content:reload'),

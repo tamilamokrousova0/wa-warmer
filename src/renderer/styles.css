@@ -108,6 +108,8 @@ body {
 .hidden { display: none; }
 .modal-wide { width: 640px; max-width: 92vw; max-height: 88vh; overflow-y: auto; }
 .help-body { font-size: 13px; line-height: 1.5; }
+.help-data { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.help-data code { word-break: break-all; }
 .help-body h4 { margin: 14px 0 6px; color: var(--primary); }
 .help-body dl { margin: 0; }
 .help-body dt { font-weight: 600; margin-top: 8px; }

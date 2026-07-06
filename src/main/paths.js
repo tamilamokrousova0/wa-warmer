@@ -37,28 +37,25 @@ function isWritable(dir) {
   }
 }
 
-// Folder next to the executable/app so state travels with the portable app.
-function portableRoot() {
-  if (process.env.PORTABLE_EXECUTABLE_DIR) return process.env.PORTABLE_EXECUTABLE_DIR; // Windows portable
-  if (!app.isPackaged) return path.join(__dirname, '..', '..'); // dev: project root
-  if (process.platform === 'darwin') {
-    // exe at Foo.app/Contents/MacOS/Foo -> put data beside Foo.app
-    return path.dirname(path.dirname(path.dirname(path.dirname(app.getPath('exe')))));
-  }
-  return path.dirname(app.getPath('exe'));
-}
-
 let cachedDataDir = null;
 function dataDir() {
   if (cachedDataDir) return cachedDataDir;
-  const preferred = path.join(portableRoot(), 'data');
-  if (isWritable(preferred)) {
-    cachedDataDir = preferred;
-  } else {
-    // read-only location (DMG, quarantined) -> fall back to userData
-    cachedDataDir = path.join(app.getPath('userData'), 'data');
-    fs.mkdirSync(cachedDataDir, { recursive: true });
+
+  // Windows portable: beside the .exe (reliable via PORTABLE_EXECUTABLE_DIR).
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    const p = path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'data');
+    if (isWritable(p)) { cachedDataDir = p; return p; }
   }
+  // Dev run: project root.
+  if (!app.isPackaged) {
+    const p = path.join(__dirname, '..', '..', 'data');
+    if (isWritable(p)) { cachedDataDir = p; return p; }
+  }
+  // Packaged mac/linux: a fixed, predictable, always-writable location.
+  // (Beside-the-.app is unreliable on macOS because Gatekeeper "App
+  // Translocation" runs downloaded apps from a random read-only copy.)
+  cachedDataDir = path.join(app.getPath('appData'), 'WA Warmer', 'data');
+  fs.mkdirSync(cachedDataDir, { recursive: true });
   return cachedDataDir;
 }
 
@@ -106,7 +103,6 @@ module.exports = {
   exeName,
   resourcesRoot,
   gowaBinaryPath,
-  portableRoot,
   dataDir,
   gowaDbPath,
   gowaKeysDbPath,
