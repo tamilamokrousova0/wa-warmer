@@ -14,6 +14,22 @@ const logLines = [];
 // ---------- accounts ----------
 let accountsCache = [];
 
+function fmtDuration(ms) {
+  const m = Math.ceil(ms / 60000);
+  if (m < 60) return m + 'м';
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return h + 'ч' + (mm ? ' ' + mm + 'м' : '');
+}
+// what happens next for this account, and when
+function nextActionText(a) {
+  if (!a.connected || a.paused) return '';
+  const now = Date.now();
+  if (a.settleUntil && a.settleUntil > now) return `⏳ отлёжка · прогрев через ${fmtDuration(a.settleUntil - now)}`;
+  if (warmingRunning) return `🔥 в прогреве · сегодня ${a.sentToday ?? 0}`;
+  return 'готов · ожидает старта';
+}
+
 function accountRow(a) {
   const li = document.createElement('li');
   li.className = 'acct' + (a.paused ? ' paused' : '');
@@ -25,6 +41,7 @@ function accountRow(a) {
     <span class="meta">
       <span class="top"><span class="label"></span><span class="phone"></span></span>
       <span class="stats"></span>
+      <span class="next small"></span>
     </span>
     ${reconBtn}
     ${pauseBtn}
@@ -34,6 +51,9 @@ function accountRow(a) {
     : (a.connected ? (a.phone ? '+' + a.phone : 'онлайн')
       : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан')));
   li.querySelector('.stats').textContent = `день ${a.days ?? 1} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
+  const nextEl = li.querySelector('.next');
+  const nextTxt = nextActionText(a);
+  if (nextTxt) nextEl.textContent = nextTxt; else nextEl.style.display = 'none';
   const recon = li.querySelector('.recon');
   if (recon) recon.onclick = () => doReconnect(a);
   li.querySelector('.pause').onclick = async () => { await api.setAccountPaused(a.deviceId, !a.paused); await refreshAccounts(); };
@@ -88,6 +108,7 @@ function renderAccounts(list) {
   $('stopBtn').disabled = !warmingRunning;
 }
 $('acctFilter').addEventListener('input', applyAccountFilter);
+setInterval(() => { if (accountsCache.length) applyAccountFilter(); }, 30000); // keep the settle countdown live
 
 async function refreshAccounts() {
   renderAccounts(await api.listAccounts());
@@ -98,6 +119,7 @@ async function loadConfig() {
   const c = await api.getConfig();
   $('minDelayMin').value = c.minDelayMin;
   $('maxDelayMin').value = c.maxDelayMin;
+  $('settleHours').value = c.settleHours;
   $('dailyCap').value = c.dailyCap;
   $('maxConcurrent').value = c.maxConcurrent;
   $('daysPerPartner').value = c.daysPerPartner;
@@ -117,6 +139,7 @@ function readConfig() {
   return {
     minDelayMin: Math.max(1, +$('minDelayMin').value || 2),
     maxDelayMin: Math.max(1, +$('maxDelayMin').value || 7),
+    settleHours: Math.max(0, +$('settleHours').value || 0),
     dailyCap: Math.max(1, +$('dailyCap').value || 30),
     maxConcurrent: Math.min(24, Math.max(1, +$('maxConcurrent').value || 4)),
     daysPerPartner: Math.max(1, +$('daysPerPartner').value || 2),
@@ -137,7 +160,7 @@ async function saveConfig() {
   await api.setConfig(readConfig());
 }
 ['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd',
-  'daysPerPartner', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'contactsEnabled', 'textNoise']
+  'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'contactsEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- warming ----------

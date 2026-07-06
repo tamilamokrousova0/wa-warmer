@@ -52,6 +52,7 @@ body {
 .acct .label { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
 .acct .phone { color: var(--muted); font-size: 11px; }
 .acct .stats { color: var(--muted); font-size: 11px; }
+.acct .next { color: var(--amber); font-size: 11px; margin-top: 1px; }
 .acct .x { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 14px; padding: 0 4px; }
 .acct .x:hover { color: var(--red); }
 .acct .recon { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 14px; padding: 0 4px; }

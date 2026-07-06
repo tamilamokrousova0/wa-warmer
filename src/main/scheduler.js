@@ -97,6 +97,13 @@ async function maybeExchangeContacts(a, b, cfg) {
   }
 }
 
+// "отлёжка": a freshly linked account waits before it starts warming
+function isSettled(acc, cfg) {
+  const h = Math.max(0, cfg.settleHours || 0);
+  if (h === 0) return true;
+  return Date.now() - (acc.addedAt || 0) >= h * 3600000;
+}
+
 const remember = (src) => { if (src) { recentTexts.push(src); while (recentTexts.length > 12) recentTexts.shift(); } };
 
 // ---- connection polling (parallel, on a timer) ----
@@ -138,7 +145,7 @@ async function refreshActive() {
       }
     }
   });
-  activeCache = store.all().filter((a) => a.connected && a.phone && !a.paused);
+  activeCache = store.all().filter((a) => a.connected && a.phone && !a.paused && isSettled(a, config));
   return activeCache;
 }
 

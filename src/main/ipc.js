@@ -14,6 +14,8 @@ const paths = require('./paths');
 const log = require('./logbus');
 
 function accountsView() {
+  const cfg = store.loadConfig();
+  const settleMs = Math.max(0, cfg.settleHours || 0) * 3600000;
   return store.all().map((a) => ({
     deviceId: a.deviceId,
     label: a.label,
@@ -22,6 +24,7 @@ function accountsView() {
     connected: !!a.connected,
     sessionLost: !!a.sessionLost,
     paused: !!a.paused,
+    settleUntil: settleMs && a.addedAt ? a.addedAt + settleMs : 0,
     sentToday: store.sentToday(a.deviceId),
     days: store.daysWarming(a),
     sent: a.sentTotal || 0,
