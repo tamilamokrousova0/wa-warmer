@@ -16,6 +16,7 @@ let config = null;
 let activeCache = []; // logged-in accounts, refreshed by the poller
 const busy = new Set(); // deviceIds currently in a conversation
 const recentTexts = [];
+let reactivateQueue = []; // existing pairs to warm up first after Start
 
 const stopBus = new EventEmitter();
 stopBus.setMaxListeners(200);
@@ -156,14 +157,41 @@ function maxPartners(acc, cfg, activeCount) {
   return Math.min(allowed, Math.max(1, activeCount - 1));
 }
 
+// all existing (persisted) relationships as unique pairs, in random order
+function buildReactivateQueue() {
+  const seen = new Set();
+  const q = [];
+  for (const a of store.all()) {
+    for (const pid of store.partnersOf(a.deviceId)) {
+      const key = [a.deviceId, pid].sort().join('|');
+      if (!seen.has(key)) { seen.add(key); q.push([a.deviceId, pid]); }
+    }
+  }
+  for (let i = q.length - 1; i > 0; i--) { const j = randInt(0, i); [q[i], q[j]] = [q[j], q[i]]; }
+  return q;
+}
+
 // ---- pair selection: gradual partner growth, fair, avoids busy accounts.
-// Prefers existing chats; opens a NEW chat only when an account has "grown".
+// After Start, first warms up EXISTING chats (reactivateQueue); once drained,
+// prefers existing chats and opens a NEW chat only when an account has "grown".
 // Synchronous: caller marks the pair busy immediately after.
 function pickPair(cfg) {
   const free = activeCache.filter((a) => !busy.has(a.deviceId));
   if (free.length < 2) return null;
   const freeIds = new Set(free.map((a) => a.deviceId));
   const activeCount = activeCache.length;
+
+  // 0) reactivation phase — run through existing pairs before anything new
+  if (reactivateQueue.length) {
+    for (let i = 0; i < reactivateQueue.length; i++) {
+      const [x, y] = reactivateQueue[i];
+      const A = activeCache.find((a) => a.deviceId === x);
+      const B = activeCache.find((a) => a.deviceId === y);
+      if (!A || !B) { reactivateQueue.splice(i, 1); i--; continue; } // partner gone → drop
+      if (!busy.has(x) && !busy.has(y)) { reactivateQueue.splice(i, 1); return [A, B]; }
+    }
+    return null; // queued pairs exist but are busy — wait, don't open new chats yet
+  }
 
   const senders = free
     .filter((s) => store.sentToday(s.deviceId) < pacedAllowance(s, cfg))
@@ -323,8 +351,10 @@ function start(cfg) {
   if (running) return { running: true };
   config = { ...store.loadConfig(), ...(cfg || {}) };
   content.reload();
+  reactivateQueue = buildReactivateQueue();
   running = true;
   log.warming(`прогрев запущен (до ${workerCount(config)} диалогов параллельно)`);
+  if (reactivateQueue.length) log.warming(`сначала оживляю ${reactivateQueue.length} существующих чат(ов)`);
   events.emit('state', { running: true });
 
   refreshActive()
@@ -345,6 +375,7 @@ function stop() {
   running = false;
   stopBus.emit('stop');
   busy.clear();
+  reactivateQueue = [];
   log.warming('прогрев остановлен');
   events.emit('state', { running: false });
   return { running: false };
