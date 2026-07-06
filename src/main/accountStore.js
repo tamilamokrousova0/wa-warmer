@@ -176,7 +176,6 @@ const DEFAULT_CONFIG = {
   voiceEnabled: true,
   stickersEnabled: true,
   pollsEnabled: true,
-  contactsEnabled: true, // exchange contact cards (vCard) on first interaction
   textNoise: true, // append invisible random chars so each message is byte-unique
   settleHours: 12, // "отлёжка": wait N hours after linking before an account warms
   dailyCap: 20, // outgoing messages per account per day

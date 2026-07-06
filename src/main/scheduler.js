@@ -77,26 +77,6 @@ function pacedAllowance(acc, cfg) {
   return Math.max(1, Math.ceil(effectiveCap(acc, cfg) * activeFraction(cfg)));
 }
 
-// track pairs that already exchanged contact cards (once per pair)
-const exchanged = new Set();
-const pairKey = (a, b) => [a.deviceId, b.deviceId].sort().join('|');
-
-async function maybeExchangeContacts(a, b, cfg) {
-  if (cfg.contactsEnabled === false) return;
-  const key = pairKey(a, b);
-  if (exchanged.has(key)) return;
-  exchanged.add(key);
-  try {
-    if (a.phone) { await client.sendContact(a.deviceId, b.phone, a.label, a.phone); store.bumpSent(a.deviceId); store.bumpReceived(b.deviceId); }
-    await sleep(randInt(1500, 3000));
-    if (b.phone) { await client.sendContact(b.deviceId, a.phone, b.label, b.phone); store.bumpSent(b.deviceId); store.bumpReceived(a.deviceId); }
-    log.warming(`${a.label} ⇄ ${b.label}: обмен визитками`);
-  } catch (e) {
-    exchanged.delete(key); // allow retry next time
-    log.warn('warming', `обмен визитками ${a.label}/${b.label}: ${e.message}`);
-  }
-}
-
 // "отлёжка": a freshly linked account waits before it starts warming
 function isSettled(acc, cfg) {
   const h = Math.max(0, cfg.settleHours || 0);
@@ -302,8 +282,6 @@ async function sendTurn(sender, receiver, cfg, replyId) {
 async function runConversation(a, b, cfg) {
   const turns = randInt(2, 6);
   for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'available'); } catch { /* best */ } }
-  await maybeExchangeContacts(a, b, cfg); // first-time contact-card exchange
-  if (!running) return;
   let sender = a; let receiver = b; let lastId = null;
   for (let i = 0; i < turns && running; i++) {
     if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break;

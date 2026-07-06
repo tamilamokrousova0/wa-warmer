@@ -131,7 +131,6 @@ async function loadConfig() {
   $('voiceEnabled').checked = c.voiceEnabled;
   $('stickersEnabled').checked = c.stickersEnabled;
   $('pollsEnabled').checked = c.pollsEnabled;
-  $('contactsEnabled').checked = c.contactsEnabled;
   $('textNoise').checked = c.textNoise;
 }
 
@@ -151,7 +150,6 @@ function readConfig() {
     voiceEnabled: $('voiceEnabled').checked,
     stickersEnabled: $('stickersEnabled').checked,
     pollsEnabled: $('pollsEnabled').checked,
-    contactsEnabled: $('contactsEnabled').checked,
     textNoise: $('textNoise').checked,
   };
 }
@@ -160,7 +158,7 @@ async function saveConfig() {
   await api.setConfig(readConfig());
 }
 ['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd',
-  'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'contactsEnabled', 'textNoise']
+  'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- warming ----------
