@@ -260,7 +260,7 @@ async function openStats() {
   // one clear metric per day: total messages (sent+received)
   const days = s.history.map((h) => ({ date: h.date, total: (h.sent || 0) + (h.received || 0) }));
   const maxDay = Math.max(1, ...days.map((d) => d.total));
-  $('statsDaily').innerHTML = days.map((d) => {
+  $('statsDaily').innerHTML = days.slice().reverse().map((d) => { // newest day first
     const w = (d.total / maxDay * 100).toFixed(0);
     return `<div class="day-row"><span class="day-date">${fmtDay(d.date)}</span>` +
       `<span class="day-bar"><i style="width:${w}%"></i></span>` +
