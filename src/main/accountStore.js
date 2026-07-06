@@ -135,15 +135,16 @@ function historyDays(days = 14) {
 
 // ---- config ----
 const DEFAULT_CONFIG = {
-  minDelayMin: 2, // gap between conversations, in MINUTES
-  maxDelayMin: 7,
+  minDelayMin: 3, // gap between conversations, in MINUTES (gentler by default)
+  maxDelayMin: 10,
   imagesEnabled: true,
   linksEnabled: true,
   voiceEnabled: true,
   stickersEnabled: true,
   pollsEnabled: true,
-  dailyCap: 30, // outgoing messages per account per day
-  rampUpDays: 5,
+  contactsEnabled: true, // exchange contact cards (vCard) on first interaction
+  dailyCap: 20, // outgoing messages per account per day
+  rampUpDays: 7, // grow the daily cap gradually over the first N days
   activeStartHour: 9, // local system time
   activeEndHour: 23,
   maxConcurrent: 4, // parallel conversations (scales throughput for many accounts)

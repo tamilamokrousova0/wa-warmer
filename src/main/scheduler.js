@@ -56,6 +56,46 @@ function effectiveCap(acc, cfg) {
   return Math.max(1, cap);
 }
 
+// fraction of the active-hours window elapsed so far today (0..1)
+function activeFraction(cfg) {
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const s = cfg.activeStartHour * 60;
+  const e = cfg.activeEndHour * 60;
+  if (s === e) return mins / 1440;
+  if (s < e) { if (mins <= s) return 0; if (mins >= e) return 1; return (mins - s) / (e - s); }
+  const total = 1440 - s + e; // overnight window
+  if (mins >= s) return Math.min(1, (mins - s) / total);
+  if (mins < e) return Math.min(1, (1440 - s + mins) / total);
+  return 0;
+}
+
+// Anti-spike: an account's allowance grows smoothly from ~1 to its daily cap
+// across the active window, so volume ramps up gradually instead of spiking.
+function pacedAllowance(acc, cfg) {
+  return Math.max(1, Math.ceil(effectiveCap(acc, cfg) * activeFraction(cfg)));
+}
+
+// track pairs that already exchanged contact cards (once per pair)
+const exchanged = new Set();
+const pairKey = (a, b) => [a.deviceId, b.deviceId].sort().join('|');
+
+async function maybeExchangeContacts(a, b, cfg) {
+  if (cfg.contactsEnabled === false) return;
+  const key = pairKey(a, b);
+  if (exchanged.has(key)) return;
+  exchanged.add(key);
+  try {
+    if (a.phone) { await client.sendContact(a.deviceId, b.phone, a.label, a.phone); store.bumpSent(a.deviceId); store.bumpReceived(b.deviceId); }
+    await sleep(randInt(1500, 3000));
+    if (b.phone) { await client.sendContact(b.deviceId, a.phone, b.label, b.phone); store.bumpSent(b.deviceId); store.bumpReceived(a.deviceId); }
+    log.warming(`${a.label} ⇄ ${b.label}: обмен визитками`);
+  } catch (e) {
+    exchanged.delete(key); // allow retry next time
+    log.warn('warming', `обмен визитками ${a.label}/${b.label}: ${e.message}`);
+  }
+}
+
 const remember = (src) => { if (src) { recentTexts.push(src); while (recentTexts.length > 12) recentTexts.shift(); } };
 
 // ---- connection polling (parallel, on a timer) ----
@@ -114,7 +154,7 @@ function pickPair(cfg) {
   const free = activeCache.filter((a) => !busy.has(a.deviceId));
   if (free.length < 2) return null;
   const eligible = free
-    .filter((s) => store.sentToday(s.deviceId) < effectiveCap(s, cfg))
+    .filter((s) => store.sentToday(s.deviceId) < pacedAllowance(s, cfg))
     .sort((x, y) => store.sentToday(x.deviceId) - store.sentToday(y.deviceId));
   if (eligible.length === 0) return null;
   const sender = eligible[0]; // fewest sent today
@@ -193,6 +233,8 @@ async function sendTurn(sender, receiver, cfg, replyId) {
 async function runConversation(a, b, cfg) {
   const turns = randInt(2, 6);
   for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'available'); } catch { /* best */ } }
+  await maybeExchangeContacts(a, b, cfg); // first-time contact-card exchange
+  if (!running) return;
   let sender = a; let receiver = b; let lastId = null;
   for (let i = 0; i < turns && running; i++) {
     if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break;

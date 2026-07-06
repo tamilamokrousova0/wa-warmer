@@ -100,6 +100,8 @@ const sendMessage = (deviceId, phone, message, replyId) =>
   });
 const sendPoll = (deviceId, phone, question, options, maxAnswer = 1) =>
   request('POST', '/send/poll', { deviceId, json: { phone, question, options, max_answer: maxAnswer } });
+const sendContact = (deviceId, phone, contactName, contactPhone) =>
+  request('POST', '/send/contact', { deviceId, json: { phone, contact_name: contactName, contact_phone: contactPhone } });
 
 const MIME = {
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif',
@@ -143,6 +145,7 @@ module.exports = {
   updateMessage,
   sendMessage,
   sendPoll,
+  sendContact,
   sendImage,
   sendAudio,
   sendSticker,
