@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   startLogin: (label) => ipcRenderer.invoke('login:start', { label }),
   startLoginCode: (label, phone) => ipcRenderer.invoke('login:startCode', { label, phone }),
   bulkLoginCode: (phones, prefix) => ipcRenderer.invoke('login:bulkCode', { phones, prefix }),
+  refreshQr: (deviceId) => ipcRenderer.invoke('login:refreshQr', { deviceId }),
   cancelLogin: (deviceId) => ipcRenderer.invoke('login:cancel', { deviceId }),
   reconnectAccount: (deviceId) => ipcRenderer.invoke('account:reconnect', { deviceId }),
   logoutAccount: (deviceId) => ipcRenderer.invoke('account:logout', { deviceId }),

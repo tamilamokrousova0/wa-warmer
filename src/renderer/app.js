@@ -182,6 +182,7 @@ function closeModal() {
   $('qrModal').classList.add('hidden');
 }
 $('qrClose').onclick = closeModal;
+$('qrRefresh').onclick = () => { if (currentLoginDevice) { $('qrBox').innerHTML = '<span class="muted">обновляю…</span>'; api.refreshQr(currentLoginDevice); } };
 $('qrStart').onclick = async () => {
   const label = $('qrLabel').value.trim() || 'Аккаунт';
   $('qrStart').disabled = true;

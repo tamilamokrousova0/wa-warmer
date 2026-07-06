@@ -61,6 +61,8 @@ function register(getWindow) {
     return out;
   });
 
+  ipcMain.handle('login:refreshQr', (_e, { deviceId }) => loginFlow.forceRefresh(deviceId));
+
   ipcMain.handle('login:cancel', (_e, { deviceId }) => {
     loginFlow.cancel(deviceId);
     return { ok: true };

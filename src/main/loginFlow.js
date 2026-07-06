@@ -87,7 +87,7 @@ async function startLogin(label) {
     const ok = await pollLogin(deviceId, {
       maxSec: 150,
       onTick: async () => {
-        if (Date.now() - lastQr > 28000) { await refreshQr(deviceId); lastQr = Date.now(); }
+        if (Date.now() - lastQr > 20000) { await refreshQr(deviceId); lastQr = Date.now(); }
       },
     });
     if (!ok && !sessions.get(deviceId)?.cancelled) events.emit('timeout', { deviceId });
@@ -129,12 +129,17 @@ async function relogin(deviceId) {
     let lastQr = 0;
     const ok = await pollLogin(deviceId, {
       maxSec: 150,
-      onTick: async () => { if (Date.now() - lastQr > 28000) { await refreshQr(deviceId); lastQr = Date.now(); } },
+      onTick: async () => { if (Date.now() - lastQr > 20000) { await refreshQr(deviceId); lastQr = Date.now(); } },
     });
     if (!ok && !sessions.get(deviceId)?.cancelled) events.emit('timeout', { deviceId });
     sessions.delete(deviceId);
   })();
   return { deviceId };
+}
+
+// force a fresh QR immediately (manual "refresh" button)
+function forceRefresh(deviceId) {
+  return refreshQr(deviceId).catch(() => false);
 }
 
 function cancel(deviceId) {
@@ -150,4 +155,4 @@ function cancel(deviceId) {
   events.emit('cancel', { deviceId });
 }
 
-module.exports = { events, startLogin, startLoginWithCode, relogin, cancel, phoneFromJid };
+module.exports = { events, startLogin, startLoginWithCode, relogin, forceRefresh, cancel, phoneFromJid };
