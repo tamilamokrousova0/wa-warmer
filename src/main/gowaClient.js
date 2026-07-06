@@ -76,21 +76,44 @@ const presence = (deviceId, type /* 'available' | 'unavailable' */) =>
 const markRead = (deviceId, messageId, phone) =>
   request('POST', `/message/${encodeURIComponent(messageId)}/read`, { deviceId, json: { phone: toJid(phone) } });
 
-// --- sending ---
-const sendMessage = (deviceId, phone, message) =>
-  request('POST', '/send/message', { deviceId, json: { phone, message } });
+// --- device webhook (for real inbound events) ---
+const setWebhook = (deviceId, webhookUrl, secret = '') =>
+  request('PATCH', `/devices/${encodeURIComponent(deviceId)}/webhook`, {
+    deviceId,
+    json: { webhook_url: webhookUrl, webhook_secret: secret, webhook_events: '' },
+  });
+const userCheck = (deviceId, phone) =>
+  request('GET', `/user/check?phone=${encodeURIComponent(phone)}`, { deviceId });
 
-async function sendImage(deviceId, phone, filePath, caption = '') {
+// --- message actions ---
+const reaction = (deviceId, messageId, phone, emoji) =>
+  request('POST', `/message/${encodeURIComponent(messageId)}/reaction`, { deviceId, json: { phone, emoji } });
+const updateMessage = (deviceId, messageId, phone, message) =>
+  request('POST', `/message/${encodeURIComponent(messageId)}/update`, { deviceId, json: { phone, message } });
+
+// --- sending ---
+const sendMessage = (deviceId, phone, message, replyId) =>
+  request('POST', '/send/message', {
+    deviceId,
+    json: replyId ? { phone, message, reply_message_id: replyId } : { phone, message },
+  });
+const sendPoll = (deviceId, phone, question, options, maxAnswer = 1) =>
+  request('POST', '/send/poll', { deviceId, json: { phone, question, options, max_answer: maxAnswer } });
+
+function sendFileForm(deviceId, endpoint, field, filePath, extra = {}) {
   const buf = fs.readFileSync(filePath);
   const form = new FormData();
-  form.append('phone', phone);
-  form.append('caption', caption);
-  form.append('compress', 'false'); // avoid ffmpeg/libwebp dependency
-  const ext = path.extname(filePath).toLowerCase();
-  const type = ext === '.png' ? 'image/png' : 'image/jpeg';
-  form.append('image', new Blob([buf], { type }), path.basename(filePath));
-  return request('POST', '/send/image', { deviceId, body: form });
+  for (const [k, v] of Object.entries(extra)) form.append(k, v);
+  form.append(field, new Blob([buf]), path.basename(filePath));
+  return request('POST', endpoint, { deviceId, body: form });
 }
+
+const sendImage = (deviceId, phone, filePath, caption = '') =>
+  sendFileForm(deviceId, '/send/image', 'image', filePath, { phone, caption, compress: 'false' });
+const sendAudio = (deviceId, phone, filePath) =>
+  sendFileForm(deviceId, '/send/audio', 'audio', filePath, { phone });
+const sendSticker = (deviceId, phone, filePath) =>
+  sendFileForm(deviceId, '/send/sticker', 'sticker', filePath, { phone });
 
 module.exports = {
   configure,
@@ -106,6 +129,13 @@ module.exports = {
   chatPresence,
   presence,
   markRead,
+  setWebhook,
+  userCheck,
+  reaction,
+  updateMessage,
   sendMessage,
+  sendPoll,
   sendImage,
+  sendAudio,
+  sendSticker,
 };

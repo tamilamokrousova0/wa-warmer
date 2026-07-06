@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const paths = require('./paths');
 const client = require('./gowaClient');
+const webhook = require('./webhookServer');
 const log = require('./logbus');
 
 const state = new EventEmitter();
@@ -114,6 +115,14 @@ async function spawnOnce() {
   restarts = 0;
   setReady(true);
   log.gowa('ready');
+  try { await webhook.start(); } catch (e) { log.warn('webhook', `start failed: ${e.message}`); }
+}
+
+// Point a logged-in device's webhook at our local receiver (best-effort).
+async function registerWebhook(deviceId) {
+  const url = webhook.getUrl();
+  if (!url) return;
+  try { await client.setWebhook(deviceId, url); } catch (e) { log.warn('webhook', `register ${deviceId}: ${e.message}`); }
 }
 
 let restartTimer = null;
@@ -170,6 +179,7 @@ module.exports = {
   start,
   stop,
   state,
+  registerWebhook,
   isReady: () => ready,
   info: () => ({ ready, restarts, port: current?.port }),
 };

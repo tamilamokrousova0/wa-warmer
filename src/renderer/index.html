@@ -15,6 +15,7 @@
       <span class="engine"><span id="gowaDot" class="dot dot-off"></span><span id="gowaText">запуск…</span></span>
     </div>
     <div class="run-controls">
+      <button id="statsBtn" class="btn">📊 Статистика</button>
       <span id="warmState" class="muted">остановлено</span>
       <button id="startBtn" class="btn btn-start" disabled>▶ Старт</button>
       <button id="stopBtn" class="btn btn-stop" disabled>■ Стоп</button>
@@ -29,6 +30,7 @@
           <div class="head-actions">
             <input id="acctFilter" class="filter-input" type="text" placeholder="фильтр…" />
             <button id="addBtn" class="btn btn-primary">+ Добавить</button>
+            <button id="bulkBtn" class="btn">Массово</button>
           </div>
         </div>
         <ul id="accountsList" class="accounts"></ul>
@@ -48,6 +50,9 @@
           <label>Активность с — до (час)<span class="hours"><input id="activeStart" type="number" min="0" max="23" /><input id="activeEnd" type="number" min="0" max="23" /></span></label>
           <label class="check"><input id="imagesEnabled" type="checkbox" /> Картинки</label>
           <label class="check"><input id="linksEnabled" type="checkbox" /> Ссылки</label>
+          <label class="check"><input id="voiceEnabled" type="checkbox" /> Голосовые</label>
+          <label class="check"><input id="stickersEnabled" type="checkbox" /> Стикеры</label>
+          <label class="check"><input id="pollsEnabled" type="checkbox" /> Опросы</label>
         </div>
         <div class="content-line">
           <span id="contentCounts" class="muted small">сообщений: 0 · ссылок: 0 · картинок: 0</span>
@@ -80,14 +85,52 @@
   <div id="qrModal" class="modal hidden">
     <div class="modal-card">
       <h3>Добавление аккаунта</h3>
+      <div class="tabs">
+        <button id="tabQr" class="tab active">QR-код</button>
+        <button id="tabCode" class="tab">По коду</button>
+      </div>
       <label class="labelfield">Название<input id="qrLabel" type="text" placeholder="Например: Аккаунт A" /></label>
+      <label id="phoneField" class="labelfield hidden">Номер телефона (с кодом страны, без +)<input id="qrPhone" type="text" placeholder="79001234567" /></label>
       <div id="qrStage" class="qr-stage hidden">
         <div id="qrBox" class="qr-box"><span class="muted">получаем QR…</span></div>
-        <p class="muted small">WhatsApp → Настройки → Связанные устройства → Привязать устройство.</p>
+        <p id="qrHint" class="muted small">WhatsApp → Настройки → Связанные устройства → Привязать устройство.</p>
+      </div>
+      <div id="codeStage" class="code-stage hidden">
+        <div id="codeBox" class="code-box">— — — —</div>
+        <p class="muted small">Введите код в WhatsApp → Связанные устройства → Привязать по номеру телефона.</p>
       </div>
       <div class="modal-actions">
-        <button id="qrStart" class="btn btn-primary">Получить QR</button>
+        <button id="qrStart" class="btn btn-primary">Получить</button>
         <button id="qrClose" class="btn btn-ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="bulkModal" class="modal hidden">
+    <div class="modal-card">
+      <h3>Массовое добавление (по коду)</h3>
+      <label class="labelfield">Префикс названия<input id="bulkPrefix" type="text" placeholder="Аккаунт" /></label>
+      <label class="labelfield">Номера телефонов (по одному на строку, с кодом страны, без +)
+        <textarea id="bulkPhones" rows="6" placeholder="79001234567&#10;79007654321"></textarea>
+      </label>
+      <div id="bulkResults" class="bulk-results"></div>
+      <div class="modal-actions">
+        <button id="bulkStart" class="btn btn-primary">Получить коды</button>
+        <button id="bulkClose" class="btn btn-ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="statsModal" class="modal hidden">
+    <div class="modal-card modal-wide">
+      <div class="card-head"><h3>Статистика прогрева</h3><button id="statsClose" class="btn btn-ghost">✕</button></div>
+      <div id="statsTotals" class="stats-totals"></div>
+      <h4 class="small muted">Отправлено / принято за 14 дней</h4>
+      <div id="statsChart" class="stats-chart"></div>
+      <h4 class="small muted">По аккаунтам</h4>
+      <div id="statsPerAccount" class="stats-accounts"></div>
+      <div class="modal-actions">
+        <button id="statsExport" class="btn btn-primary">Экспорт CSV</button>
       </div>
     </div>
   </div>

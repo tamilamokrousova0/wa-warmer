@@ -43,6 +43,24 @@ function register(getWindow) {
     return r;
   });
 
+  ipcMain.handle('login:startCode', async (_e, { label, phone }) => {
+    const r = await loginFlow.startLoginWithCode(label, phone);
+    send('accounts:updated', accountsView());
+    return r;
+  });
+
+  ipcMain.handle('login:bulkCode', async (_e, { phones, prefix }) => {
+    const out = [];
+    let i = 0;
+    for (const phone of phones) {
+      i += 1;
+      const r = await loginFlow.startLoginWithCode(`${prefix || 'Аккаунт'} ${i}`, phone);
+      out.push({ phone, code: r.code || null, deviceId: r.deviceId || null, error: r.error || null });
+      send('accounts:updated', accountsView());
+    }
+    return out;
+  });
+
   ipcMain.handle('login:cancel', (_e, { deviceId }) => {
     loginFlow.cancel(deviceId);
     return { ok: true };
@@ -69,6 +87,33 @@ function register(getWindow) {
   ipcMain.handle('warming:getConfig', () => store.loadConfig());
   ipcMain.handle('warming:setConfig', (_e, { config }) => store.saveConfig(config));
   ipcMain.handle('warming:stats', () => scheduler.stats());
+
+  ipcMain.handle('stats:full', () => {
+    const s = scheduler.stats();
+    return {
+      totals: { accounts: s.total, connected: s.connected, sent: s.sentTotal, received: s.receivedTotal, running: s.running },
+      perAccount: s.perAccount,
+      history: store.historyDays(14),
+    };
+  });
+  ipcMain.handle('stats:exportCsv', async () => {
+    const win = getWindow();
+    const res = await dialog.showSaveDialog(win, {
+      title: 'Экспорт статистики',
+      defaultPath: 'wa-warmer-stats.csv',
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    });
+    if (res.canceled) return { canceled: true };
+    const rows = [['label', 'phone', 'days', 'sent', 'received', 'sentToday', 'cap']];
+    for (const a of scheduler.stats().perAccount) {
+      const acc = store.get(a.deviceId);
+      rows.push([a.label, acc?.phone || '', a.days, a.sent, a.received, a.sentToday, a.cap]);
+    }
+    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    fs.writeFileSync(res.filePath, '﻿' + csv);
+    return { path: res.filePath };
+  });
+
   ipcMain.handle('gowa:status', () => gowa.info());
   ipcMain.handle('log:history', () => log.history());
 
@@ -97,6 +142,7 @@ function register(getWindow) {
   log.on((line) => send('log:line', line));
 
   loginFlow.events.on('qr', (p) => send('login:qr', p));
+  loginFlow.events.on('code', (p) => send('login:code', p));
   loginFlow.events.on('success', (p) => { send('login:success', p); send('accounts:updated', accountsView()); });
   loginFlow.events.on('timeout', (p) => send('login:timeout', p));
   loginFlow.events.on('cancel', (p) => send('login:cancel', p));

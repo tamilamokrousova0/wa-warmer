@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   // invoke (renderer -> main)
   listAccounts: () => ipcRenderer.invoke('accounts:list'),
   startLogin: (label) => ipcRenderer.invoke('login:start', { label }),
+  startLoginCode: (label, phone) => ipcRenderer.invoke('login:startCode', { label, phone }),
+  bulkLoginCode: (phones, prefix) => ipcRenderer.invoke('login:bulkCode', { phones, prefix }),
   cancelLogin: (deviceId) => ipcRenderer.invoke('login:cancel', { deviceId }),
   logoutAccount: (deviceId) => ipcRenderer.invoke('account:logout', { deviceId }),
   startWarming: (config) => ipcRenderer.invoke('warming:start', { config }),
@@ -18,6 +20,8 @@ contextBridge.exposeInMainWorld('api', {
   getConfig: () => ipcRenderer.invoke('warming:getConfig'),
   setConfig: (config) => ipcRenderer.invoke('warming:setConfig', { config }),
   getStats: () => ipcRenderer.invoke('warming:stats'),
+  statsFull: () => ipcRenderer.invoke('stats:full'),
+  statsExportCsv: () => ipcRenderer.invoke('stats:exportCsv'),
   gowaStatus: () => ipcRenderer.invoke('gowa:status'),
   logHistory: () => ipcRenderer.invoke('log:history'),
 
@@ -28,6 +32,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // events (main -> renderer); each returns an unsubscribe fn
   onQr: (fn) => on('login:qr', fn),
+  onCode: (fn) => on('login:code', fn),
   onLoginSuccess: (fn) => on('login:success', fn),
   onLoginTimeout: (fn) => on('login:timeout', fn),
   onLoginCancel: (fn) => on('login:cancel', fn),

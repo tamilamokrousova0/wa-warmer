@@ -83,6 +83,7 @@ function bumpSent(deviceId) {
   d.count += 1;
   a.sentTotal = (a.sentTotal || 0) + 1;
   saveAccounts();
+  bumpHistory('sent');
 }
 
 function bumpReceived(deviceId) {
@@ -90,6 +91,7 @@ function bumpReceived(deviceId) {
   if (!a) return;
   a.receivedTotal = (a.receivedTotal || 0) + 1;
   saveAccounts();
+  bumpHistory('received');
 }
 
 function sentToday(deviceId) {
@@ -104,12 +106,42 @@ function daysWarming(a) {
   return Math.floor(ms / 86400000) + 1;
 }
 
+// ---- daily traffic history (for the stats dashboard) ----
+let history = null;
+function loadHistory() {
+  if (history) return history;
+  history = readJson(paths.statsFile(), {});
+  if (typeof history !== 'object' || !history) history = {};
+  return history;
+}
+function bumpHistory(kind /* 'sent' | 'received' */, n = 1) {
+  loadHistory();
+  const t = todayStr();
+  if (!history[t]) history[t] = { sent: 0, received: 0 };
+  history[t][kind] = (history[t][kind] || 0) + n;
+  writeJsonAtomic(paths.statsFile(), history);
+}
+function historyDays(days = 14) {
+  loadHistory();
+  const out = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+    const h = history[d] || { sent: 0, received: 0 };
+    out.push({ date: d, sent: h.sent || 0, received: h.received || 0 });
+  }
+  return out;
+}
+
 // ---- config ----
 const DEFAULT_CONFIG = {
   minDelayMin: 2, // gap between conversations, in MINUTES
   maxDelayMin: 7,
   imagesEnabled: true,
   linksEnabled: true,
+  voiceEnabled: true,
+  stickersEnabled: true,
+  pollsEnabled: true,
   dailyCap: 30, // outgoing messages per account per day
   rampUpDays: 5,
   activeStartHour: 9, // local system time
@@ -135,6 +167,8 @@ module.exports = {
   setConnected,
   bumpSent,
   bumpReceived,
+  bumpHistory,
+  historyDays,
   sentToday,
   daysWarming,
   ensureDaily,

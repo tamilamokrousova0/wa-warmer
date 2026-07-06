@@ -111,24 +111,52 @@ function pickPair(cfg) {
   return [sender, partner];
 }
 
-// ---- one message with typing + read receipt ----
+// ---- one message with typing, optional quote, typo+edit, read receipt ----
 const msgId = (res) => res?.results?.message_id || res?.results?.id || null;
+const REACT = ['👍', '❤️', '😂', '🔥', '👌', '😮', '🙏', '💯'];
 
-async function sendTurn(sender, receiver, cfg) {
+function introduceTypo(s) {
+  if (s.length < 5) return s;
+  const i = randInt(1, s.length - 2);
+  const a = s.split('');
+  [a[i], a[i + 1]] = [a[i + 1], a[i]];
+  return a.join('');
+}
+
+// returns { type, id } (id = sent message id, for quoting/reactions) or null/'empty'
+async function sendTurn(sender, receiver, cfg, replyId) {
   const item = content.pick(cfg, new Set(recentTexts));
   if (!item) return 'empty';
   remember(item.sourceText);
 
-  const typTarget = item.message || item.caption || '';
-  const typMs = Math.min(8000, Math.max(1500, typTarget.length * randInt(45, 90)));
-  try { await client.chatPresence(sender.deviceId, receiver.phone, 'start'); } catch { /* best effort */ }
-  await sleep(typMs);
-  try { await client.chatPresence(sender.deviceId, receiver.phone, 'stop'); } catch { /* best effort */ }
+  // typing indicator paced by text length (for text-like items)
+  const typTarget = item.message || item.caption || item.poll?.question || '';
+  if (typTarget) {
+    const typMs = Math.min(8000, Math.max(1500, typTarget.length * randInt(45, 90)));
+    try { await client.chatPresence(sender.deviceId, receiver.phone, 'start'); } catch { /* best */ }
+    await sleep(typMs);
+    try { await client.chatPresence(sender.deviceId, receiver.phone, 'stop'); } catch { /* best */ }
+  }
   if (!running) return null;
 
   let res;
+  let sentType = item.type;
   if (item.type === 'image') res = await client.sendImage(sender.deviceId, receiver.phone, item.filePath, item.caption);
-  else res = await client.sendMessage(sender.deviceId, receiver.phone, item.message);
+  else if (item.type === 'voice') res = await client.sendAudio(sender.deviceId, receiver.phone, item.filePath);
+  else if (item.type === 'sticker') res = await client.sendSticker(sender.deviceId, receiver.phone, item.filePath);
+  else if (item.type === 'poll') res = await client.sendPoll(sender.deviceId, receiver.phone, item.poll.question, item.poll.options);
+  else {
+    // text: occasionally send with a typo, then edit to fix (very human)
+    const doTypo = item.message.length > 6 && chance(0.12);
+    const firstText = doTypo ? introduceTypo(item.message) : item.message;
+    res = await client.sendMessage(sender.deviceId, receiver.phone, firstText, replyId);
+    const id0 = msgId(res);
+    if (doTypo && id0) {
+      await sleep(randInt(1500, 3500));
+      try { await client.updateMessage(sender.deviceId, id0, receiver.phone, item.message); } catch { /* best */ }
+      sentType = 'text✎';
+    }
+  }
   store.bumpSent(sender.deviceId);
   store.bumpReceived(receiver.deviceId);
 
@@ -136,24 +164,29 @@ async function sendTurn(sender, receiver, cfg) {
   if (id) {
     (async () => {
       await sleep(randInt(1200, 4000));
-      try { await client.markRead(receiver.deviceId, id, sender.phone); } catch { /* best effort */ }
+      try { await client.markRead(receiver.deviceId, id, sender.phone); } catch { /* best */ }
+      if (chance(0.2)) { // receiver reacts to the message
+        try { await client.reaction(receiver.deviceId, id, sender.phone, REACT[randInt(0, REACT.length - 1)]); } catch { /* best */ }
+      }
     })();
   }
 
-  events.emit('tick', { ts: Date.now(), from: sender.label, to: receiver.label, type: item.type, ok: true });
-  return item.type;
+  events.emit('tick', { ts: Date.now(), from: sender.label, to: receiver.label, type: sentType, ok: true });
+  return { type: sentType, id };
 }
 
 async function runConversation(a, b, cfg) {
   const turns = randInt(2, 6);
   for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'available'); } catch { /* best */ } }
-  let sender = a; let receiver = b;
+  let sender = a; let receiver = b; let lastId = null;
   for (let i = 0; i < turns && running; i++) {
     if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break;
     try {
-      const r = await sendTurn(sender, receiver, cfg);
+      const replyId = i > 0 && lastId && chance(0.35) ? lastId : undefined; // sometimes quote the previous message
+      const r = await sendTurn(sender, receiver, cfg, replyId);
       if (r === null) break;
       if (r === 'empty') { log.warn('warming', 'нет контента — добавьте тексты в messages.txt'); break; }
+      lastId = r.id;
     } catch (e) {
       log.error('warming', `отправка ${sender.label}→${receiver.label}: ${e.message}`);
       break;

@@ -7,6 +7,7 @@ const scheduler = require('./scheduler');
 const content = require('./contentPack');
 const client = require('./gowaClient');
 const store = require('./accountStore');
+const webhook = require('./webhookServer');
 const log = require('./logbus');
 
 let mainWindow = null;
@@ -48,10 +49,26 @@ async function reconnectAccounts() {
       const r = st.results || st;
       const phone = r.jid ? String(r.jid).split('@')[0].split(':')[0] : a.phone;
       store.setConnected(a.deviceId, !!r.is_logged_in, r.jid, phone);
+      if (r.is_logged_in) gowa.registerWebhook(a.deviceId);
     } catch {
       store.setConnected(a.deviceId, false);
     }
   }
+}
+
+// React to genuinely delivered inbound messages (best-effort; payload varies).
+function handleInbound(data) {
+  try {
+    const p = (data && (data.payload || data.results)) || data || {};
+    const deviceId = data.device_id || data.deviceId || p.device_id;
+    const fromMe = p.from_me ?? p.fromMe ?? data.from_me;
+    const from = p.from || p.chat_id || p.sender || data.from || '';
+    const messageId = p.id || p.message_id || (p.message && p.message.id) || data.message_id;
+    if (fromMe || !deviceId || !messageId || !from) return;
+    log.info('webhook', `📨 входящее для ${String(deviceId).slice(0, 8)} от ${String(from).split('@')[0]}`);
+    if (!scheduler.isRunning()) return;
+    client.markRead(deviceId, messageId, from).catch(() => {});
+  } catch { /* ignore malformed */ }
 }
 
 function notify(title, body) {
@@ -66,6 +83,7 @@ async function boot() {
   scheduler.events.on('loggedOut', ({ label }) => {
     notify('WA Warmer — аккаунт отключён', `"${label}" вышел из сети (возможен logout или бан).`);
   });
+  webhook.events.on('inbound', handleInbound);
   createWindow();
   try {
     await gowa.start();
