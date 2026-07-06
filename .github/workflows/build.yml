@@ -21,12 +21,10 @@ jobs:
             name: mac
             fetch: npm run fetch-gowa           # mac build needs both x64 + arm64
             build: npm run build:mac
-            artifact: "dist/*.zip"
           - os: windows-latest
             name: win
             fetch: npm run fetch-gowa -- --current  # only win-x64 needed
             build: npm run build:win
-            artifact: "dist/*.exe"
 
     runs-on: ${{ matrix.os }}
 
@@ -58,11 +56,40 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           EP_PRE_RELEASE: "false"
 
+      # Wrap each build in a "WA Warmer" folder + README and zip it, so the
+      # download extracts to a ready folder where data/ is created next to the app.
+      - name: Bundle into folder (mac)
+        if: matrix.name == 'mac'
+        run: |
+          mkdir -p out
+          for pair in "arm64:dist/mac-arm64" "x64:dist/mac"; do
+            arch="${pair%%:*}"; dir="${pair##*:}"
+            app="$dir/WA Warmer.app"
+            [ -d "$app" ] || continue
+            rm -rf stage; mkdir -p "stage/WA Warmer"
+            cp -R "$app" "stage/WA Warmer/"
+            cp build/dist-readme.txt "stage/WA Warmer/README.txt" || true
+            ( cd stage && ditto -c -k --sequesterRsrc --keepParent "WA Warmer" "../out/WA-Warmer-mac-$arch.zip" )
+          done
+          ls -la out
+
+      - name: Bundle into folder (win)
+        if: matrix.name == 'win'
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist -Filter *.exe | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path "stage/WA Warmer" | Out-Null
+          Copy-Item $exe.FullName -Destination "stage/WA Warmer/WA Warmer.exe"
+          Copy-Item "build/dist-readme.txt" -Destination "stage/WA Warmer/README.txt" -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path "out" | Out-Null
+          Compress-Archive -Path "stage/WA Warmer" -DestinationPath "out/WA-Warmer-win-x64.zip" -Force
+          Get-ChildItem out
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wa-warmer-${{ matrix.name }}
-          path: ${{ matrix.artifact }}
+          path: "out/*.zip"
           if-no-files-found: error
           retention-days: 14
 
@@ -70,5 +97,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.artifact }}
+          files: "out/*.zip"
           fail_on_unmatched_files: true

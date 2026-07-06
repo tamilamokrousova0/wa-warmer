@@ -107,6 +107,14 @@ body {
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
 .hidden { display: none; }
 .modal-wide { width: 640px; max-width: 92vw; max-height: 88vh; overflow-y: auto; }
+.help-body { font-size: 13px; line-height: 1.5; }
+.help-body h4 { margin: 14px 0 6px; color: var(--primary); }
+.help-body dl { margin: 0; }
+.help-body dt { font-weight: 600; margin-top: 8px; }
+.help-body dd { margin: 2px 0 0; color: var(--muted); }
+.help-list { margin: 4px 0 0; padding-left: 18px; }
+.help-list li { margin: 3px 0; color: var(--muted); }
+.help-list b, .help-body dt b, .help-body dd b { color: var(--text); }
 
 .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
 .tab { flex: 1; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 6px; cursor: pointer; font-size: 12px; }

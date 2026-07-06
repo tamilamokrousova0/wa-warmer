@@ -5,3 +5,5 @@ resources/gowa/
 .DS_Store
 *.log
 .claude/settings.local.json
+out/
+stage/
