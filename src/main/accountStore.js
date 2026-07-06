@@ -45,6 +45,19 @@ function get(deviceId) {
   return loadAccounts().find((a) => a.deviceId === deviceId) || null;
 }
 
+// account labels must be unique (case-insensitive, trimmed)
+function labelExists(label) {
+  const l = String(label || '').trim().toLowerCase();
+  if (!l) return false;
+  return loadAccounts().some((a) => String(a.label || '').trim().toLowerCase() === l);
+}
+function uniqueLabel(base) {
+  let label = base;
+  let n = 1;
+  while (labelExists(label)) { n += 1; label = `${base} ${n}`; }
+  return label;
+}
+
 function upsert(acc) {
   loadAccounts();
   const idx = accounts.findIndex((a) => a.deviceId === acc.deviceId);
@@ -199,6 +212,8 @@ function saveConfig(cfg) {
 module.exports = {
   all,
   get,
+  labelExists,
+  uniqueLabel,
   upsert,
   remove,
   linkPartners,

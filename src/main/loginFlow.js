@@ -80,6 +80,7 @@ async function refreshQr(deviceId) {
 }
 
 async function startLogin(label) {
+  if (store.labelExists(label)) return { error: `Название «${label}» уже занято` };
   let deviceId;
   try { deviceId = await newDevice(label); } catch (e) { log.error('login', e.message); return { error: e.message }; }
   sessions.set(deviceId, { cancelled: false });
@@ -99,6 +100,7 @@ async function startLogin(label) {
 }
 
 async function startLoginWithCode(label, phone) {
+  if (store.labelExists(label)) return { error: `Название «${label}» уже занято` };
   let deviceId;
   try { deviceId = await newDevice(label); } catch (e) { return { error: e.message }; }
   sessions.set(deviceId, { cancelled: false });

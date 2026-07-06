@@ -218,21 +218,35 @@ function closeModal() {
 }
 $('qrClose').onclick = closeModal;
 $('qrRefresh').onclick = () => { if (currentLoginDevice) { $('qrBox').innerHTML = '<span class="muted">обновляю…</span>'; api.refreshQr(currentLoginDevice); } };
+function showAddError(msg) {
+  $('codeStage').classList.add('hidden');
+  $('qrHint').textContent = '⚠ ' + msg;
+  $('qrHint').style.color = 'var(--red)';
+  $('qrStage').classList.remove('hidden');
+  $('qrBox').innerHTML = '';
+  $('qrStart').disabled = false;
+}
 $('qrStart').onclick = async () => {
   const label = $('qrLabel').value.trim() || 'Аккаунт';
   $('qrStart').disabled = true;
+  $('qrHint').style.color = '';
   if (loginMode === 'qr') {
+    const r = await api.startLogin(label);
+    if (r.error) { showAddError(r.error); return; }
+    $('codeStage').classList.add('hidden');
+    $('qrHint').textContent = 'WhatsApp → Настройки → Связанные устройства → Привязать устройство. Сканируйте сразу — код обновляется каждые 20с.';
     $('qrStage').classList.remove('hidden');
-    const { deviceId } = await api.startLogin(label);
-    currentLoginDevice = deviceId;
+    $('qrBox').innerHTML = '<span class="muted">получаем QR…</span>';
+    currentLoginDevice = r.deviceId;
   } else {
     const phone = $('qrPhone').value.replace(/[^0-9]/g, '');
     if (!phone) { $('qrStart').disabled = false; return; }
-    $('codeStage').classList.remove('hidden');
-    $('codeBox').textContent = '…';
     const r = await api.startLoginCode(label, phone);
+    if (r.error) { showAddError(r.error); return; }
+    $('qrStage').classList.add('hidden');
+    $('codeStage').classList.remove('hidden');
+    $('codeBox').textContent = r.code || '…';
     currentLoginDevice = r.deviceId || null;
-    $('codeBox').textContent = r.code || (r.error ? 'ошибка' : '…');
   }
 };
 

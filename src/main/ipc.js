@@ -62,7 +62,8 @@ function register(getWindow) {
     let i = 0;
     for (const phone of phones) {
       i += 1;
-      const r = await loginFlow.startLoginWithCode(`${prefix || 'Аккаунт'} ${i}`, phone);
+      const label = store.uniqueLabel(`${prefix || 'Аккаунт'} ${i}`); // avoid duplicate names
+      const r = await loginFlow.startLoginWithCode(label, phone);
       out.push({ phone, code: r.code || null, deviceId: r.deviceId || null, error: r.error || null });
       send('accounts:updated', accountsView());
     }
