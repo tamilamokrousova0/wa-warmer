@@ -241,35 +241,39 @@ $('bulkStart').onclick = async () => {
 };
 
 // ---------- stats dashboard ----------
-function bars(history) {
-  const max = Math.max(1, ...history.map((h) => Math.max(h.sent, h.received)));
-  const bw = 100 / history.length;
-  let svg = '<svg viewBox="0 0 100 40" preserveAspectRatio="none" class="chart-svg">';
-  history.forEach((h, i) => {
-    const x = i * bw;
-    const hs = (h.sent / max) * 38, hr = (h.received / max) * 38;
-    svg += `<rect x="${(x + bw * 0.12).toFixed(2)}" y="${(40 - hs).toFixed(2)}" width="${(bw * 0.36).toFixed(2)}" height="${hs.toFixed(2)}" fill="#2ea6ff"></rect>`;
-    svg += `<rect x="${(x + bw * 0.52).toFixed(2)}" y="${(40 - hr).toFixed(2)}" width="${(bw * 0.36).toFixed(2)}" height="${hr.toFixed(2)}" fill="#2ecc71"></rect>`;
-  });
-  svg += '</svg>';
-  return svg;
-}
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+function fmtDay(iso) { return `${+iso.slice(8, 10)} ${MONTHS[+iso.slice(5, 7) - 1]}`; }
+
 async function openStats() {
   const s = await api.statsFull();
   const t = s.totals;
+  const today = s.history[s.history.length - 1] || { sent: 0, received: 0 };
+  const totalMsgs = t.sent + t.received;
+
+  const card = (val, key) => `<div class="stat-card"><div class="sc-val">${val}</div><div class="sc-key">${key}</div></div>`;
   $('statsTotals').innerHTML =
-    `<span class="chip">аккаунтов: ${t.accounts}</span><span class="chip">онлайн: ${t.connected}</span>` +
-    `<span class="chip">↑ отправлено: ${t.sent}</span><span class="chip">↓ принято: ${t.received}</span>`;
-  $('statsChart').innerHTML = bars(s.history) +
-    `<div class="legend"><span><i style="background:#2ea6ff"></i>отправлено</span><span><i style="background:#2ecc71"></i>принято</span></div>`;
-  const maxAcc = Math.max(1, ...s.perAccount.map((a) => Math.max(a.sent, a.received)));
-  $('statsPerAccount').innerHTML = s.perAccount.map((a) => `
-    <div class="sa-row">
-      <span class="sa-name">${a.label}</span>
-      <span class="sa-bar"><i style="width:${(a.sent / maxAcc * 100).toFixed(0)}%;background:#2ea6ff"></i></span>
-      <span class="sa-bar"><i style="width:${(a.received / maxAcc * 100).toFixed(0)}%;background:#2ecc71"></i></span>
-      <span class="sa-num muted small">день ${a.days} · ↑${a.sent} ↓${a.received}</span>
-    </div>`).join('') || '<span class="muted small">нет данных</span>';
+    card(t.connected + ' / ' + t.accounts, 'аккаунтов онлайн') +
+    card(today.sent + today.received, 'сообщений сегодня') +
+    card(totalMsgs, 'сообщений всего') +
+    card(t.running ? 'идёт' : 'стоп', 'прогрев');
+
+  // one clear metric per day: total messages (sent+received)
+  const days = s.history.map((h) => ({ date: h.date, total: (h.sent || 0) + (h.received || 0) }));
+  const maxDay = Math.max(1, ...days.map((d) => d.total));
+  $('statsDaily').innerHTML = days.map((d) => {
+    const w = (d.total / maxDay * 100).toFixed(0);
+    return `<div class="day-row"><span class="day-date">${fmtDay(d.date)}</span>` +
+      `<span class="day-bar"><i style="width:${w}%"></i></span>` +
+      `<span class="day-val">${d.total || ''}</span></div>`;
+  }).join('');
+
+  // per-account: a clean numeric table
+  $('statsPerAccount').innerHTML =
+    '<div class="sa-head"><span>Аккаунт</span><span>день</span><span>чатов</span><span>отпр.</span><span>прин.</span></div>' +
+    (s.perAccount.map((a) => `<div class="sa-line"><span class="sa-name">${a.label}</span>` +
+      `<span>${a.days}</span><span>${a.chats ?? 0}</span><span>${a.sent}</span><span>${a.received}</span></div>`).join('')
+      || '<div class="muted small">нет данных</div>');
+
   $('statsModal').classList.remove('hidden');
 }
 $('statsBtn').onclick = openStats;

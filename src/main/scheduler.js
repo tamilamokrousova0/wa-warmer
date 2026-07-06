@@ -388,6 +388,7 @@ function stats() {
     deviceId: a.deviceId,
     label: a.label,
     days: store.daysWarming(a),
+    chats: store.partnersOf(a.deviceId).length,
     sent: a.sentTotal || 0,
     received: a.receivedTotal || 0,
     sentToday: store.sentToday(a.deviceId),
