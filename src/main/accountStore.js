@@ -81,8 +81,17 @@ function setConnected(deviceId, connected, jid, phone) {
   const a = get(deviceId);
   if (!a) return;
   a.connected = connected;
+  if (connected) a.sessionLost = false;
   if (jid) a.jid = jid;
   if (phone) a.phone = phone;
+  saveAccounts();
+}
+
+// mark that GOWA no longer holds this device's session (needs a fresh QR login)
+function setSessionLost(deviceId, value) {
+  const a = get(deviceId);
+  if (!a || a.sessionLost === value) return;
+  a.sessionLost = value;
   saveAccounts();
 }
 
@@ -187,6 +196,7 @@ module.exports = {
   linkPartners,
   partnersOf,
   setConnected,
+  setSessionLost,
   bumpSent,
   bumpReceived,
   bumpHistory,

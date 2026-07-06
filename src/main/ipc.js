@@ -20,6 +20,7 @@ function accountsView() {
     phone: a.phone,
     jid: a.jid,
     connected: !!a.connected,
+    sessionLost: !!a.sessionLost,
     sentToday: store.sentToday(a.deviceId),
     days: store.daysWarming(a),
     sent: a.sentTotal || 0,

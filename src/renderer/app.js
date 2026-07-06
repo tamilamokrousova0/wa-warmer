@@ -28,7 +28,9 @@ function accountRow(a) {
     ${reconBtn}
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
-  li.querySelector('.phone').textContent = a.connected ? (a.phone ? '+' + a.phone : 'онлайн') : 'нужен ре-логин';
+  li.querySelector('.phone').textContent = a.connected
+    ? (a.phone ? '+' + a.phone : 'онлайн')
+    : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан'));
   li.querySelector('.stats').textContent = `день ${a.days ?? 1} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
   const recon = li.querySelector('.recon');
   if (recon) recon.onclick = () => doReconnect(a);

@@ -71,29 +71,54 @@ async function reconnectAccounts() {
 // up. Accounts that never logged in (no jid) need a QR and are left alone.
 const reconnectAttempts = new Map();
 async function maintainConnections() {
-  const warming = scheduler.isRunning();
+  // one call gives every device's state + jid; jid present = GOWA still holds the session
+  let devMap;
+  try {
+    const list = await client.listDevices();
+    devMap = new Map((list.results || []).map((d) => [d.id, d]));
+  } catch {
+    return; // engine not reachable this cycle
+  }
+
   for (const a of store.all()) {
-    if (a.connected) { reconnectAttempts.delete(a.deviceId); continue; }
-    if (!a.jid) continue; // never linked → needs QR
+    const dev = devMap.get(a.deviceId);
+    const loggedIn = !!dev && dev.state === 'logged_in';
+    const hasSession = !!dev && (!!dev.jid || loggedIn);
+
+    if (loggedIn) {
+      reconnectAttempts.delete(a.deviceId);
+      const phone = dev.jid ? String(dev.jid).split('@')[0].split(':')[0] : a.phone;
+      if (!a.connected) log.info('account', `аккаунт "${a.label}" онлайн`);
+      store.setConnected(a.deviceId, true, dev.jid || a.jid, phone);
+      gowa.registerWebhook(a.deviceId);
+      continue;
+    }
+
+    if (!a.jid) { store.setConnected(a.deviceId, false); continue; } // never linked → needs QR
+
+    if (a.jid && !hasSession) {
+      // account had a session, but GOWA no longer holds it → session lost.
+      // Try a couple of reconnects first (grace for slow restore), then mark it.
+      const tries = reconnectAttempts.get(a.deviceId) || 0;
+      reconnectAttempts.set(a.deviceId, tries + 1);
+      store.setConnected(a.deviceId, false);
+      if (tries < 2) { try { await client.reconnect(a.deviceId); } catch { /* ignore */ } }
+      else {
+        store.setSessionLost(a.deviceId, true);
+        if (tries === 2) log.warn('account', `аккаунт "${a.label}": сессия потеряна в движке — нужен ре-логин`);
+      }
+      continue;
+    }
+
+    // has a valid session but the socket is down → recoverable: retry with back-off
+    store.setConnected(a.deviceId, false);
+    store.setSessionLost(a.deviceId, false);
     const tries = reconnectAttempts.get(a.deviceId) || 0;
     reconnectAttempts.set(a.deviceId, tries + 1);
-    if (tries > 8 && tries % 10 !== 0) continue; // after ~4 min, retry only every ~5 min
-    try {
-      await client.reconnect(a.deviceId);
-      await sleep(2500);
-      const r = (await client.status(a.deviceId)).results || {};
-      if (r.is_logged_in) {
-        const phone = r.jid ? String(r.jid).split('@')[0].split(':')[0] : a.phone;
-        store.setConnected(a.deviceId, true, r.jid, phone);
-        gowa.registerWebhook(a.deviceId);
-        reconnectAttempts.delete(a.deviceId);
-        log.info('account', `аккаунт "${a.label}" авто-переподключён`);
-      }
-    } catch { /* ignore */ }
+    if (tries > 8 && tries % 10 !== 0) continue;
+    try { await client.reconnect(a.deviceId); } catch { /* ignore */ }
   }
-  // when idle, refresh all statuses too (the scheduler does this while warming)
-  if (!warming) await refreshStatuses();
-  else if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('accounts:updated', ipc.accountsView());
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('accounts:updated', ipc.accountsView());
 }
 
 // React to genuinely delivered inbound messages (best-effort; payload varies).
