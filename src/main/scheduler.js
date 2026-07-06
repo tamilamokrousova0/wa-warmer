@@ -138,7 +138,7 @@ async function refreshActive() {
       }
     }
   });
-  activeCache = store.all().filter((a) => a.connected && a.phone);
+  activeCache = store.all().filter((a) => a.connected && a.phone && !a.paused);
   return activeCache;
 }
 

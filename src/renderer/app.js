@@ -16,9 +16,10 @@ let accountsCache = [];
 
 function accountRow(a) {
   const li = document.createElement('li');
-  li.className = 'acct';
-  const dotClass = a.connected ? 'dot-on' : 'dot-err';
-  const reconBtn = a.connected ? '' : '<button class="recon" title="Переподключить">↻</button>';
+  li.className = 'acct' + (a.paused ? ' paused' : '');
+  const dotClass = a.paused ? 'dot-warn' : (a.connected ? 'dot-on' : 'dot-err');
+  const reconBtn = (!a.connected && !a.paused) ? '<button class="recon" title="Переподключить">↻</button>' : '';
+  const pauseBtn = `<button class="pause" title="${a.paused ? 'Снять паузу' : 'Пауза — исключить из прогрева'}">${a.paused ? '▶' : '⏸'}</button>`;
   li.innerHTML = `
     <span class="dot ${dotClass}"></span>
     <span class="meta">
@@ -26,14 +27,16 @@ function accountRow(a) {
       <span class="stats"></span>
     </span>
     ${reconBtn}
+    ${pauseBtn}
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
-  li.querySelector('.phone').textContent = a.connected
-    ? (a.phone ? '+' + a.phone : 'онлайн')
-    : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан'));
+  li.querySelector('.phone').textContent = a.paused ? 'на паузе'
+    : (a.connected ? (a.phone ? '+' + a.phone : 'онлайн')
+      : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан')));
   li.querySelector('.stats').textContent = `день ${a.days ?? 1} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
   const recon = li.querySelector('.recon');
   if (recon) recon.onclick = () => doReconnect(a);
+  li.querySelector('.pause').onclick = async () => { await api.setAccountPaused(a.deviceId, !a.paused); await refreshAccounts(); };
   li.querySelector('.x').onclick = async () => {
     if (confirm(`Отвязать «${a.label}»?`)) { await api.logoutAccount(a.deviceId); await refreshAccounts(); }
   };
@@ -73,13 +76,15 @@ function applyAccountFilter() {
 function renderAccounts(list) {
   accountsCache = list;
   const connected = list.filter((a) => a.connected).length;
+  const active = list.filter((a) => a.connected && !a.paused).length; // eligible for warming
+  const paused = list.filter((a) => a.paused).length;
   const sent = list.reduce((s, a) => s + (a.sent || 0), 0);
   const received = list.reduce((s, a) => s + (a.received || 0), 0);
-  $('sumAccounts').textContent = `${connected} / ${list.length} онлайн`;
+  $('sumAccounts').textContent = `${connected} / ${list.length} онлайн` + (paused ? ` · ${paused} на паузе` : '');
   $('sumTraffic').textContent = `↑${sent} ↓${received}`;
   $('acctCount').textContent = list.length ? `(${list.length})` : '';
   applyAccountFilter();
-  $('startBtn').disabled = warmingRunning || !gowaReady || connected < 2;
+  $('startBtn').disabled = warmingRunning || !gowaReady || active < 2;
   $('stopBtn').disabled = !warmingRunning;
 }
 $('acctFilter').addEventListener('input', applyAccountFilter);

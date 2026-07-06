@@ -85,6 +85,13 @@ async function maintainConnections() {
     const loggedIn = !!dev && dev.state === 'logged_in';
     const hasSession = !!dev && (!!dev.jid || loggedIn);
 
+    if (a.paused) {
+      // manual hold: reflect status for display but never auto-reconnect
+      reconnectAttempts.delete(a.deviceId);
+      store.setConnected(a.deviceId, loggedIn, dev?.jid || a.jid, a.phone);
+      continue;
+    }
+
     if (loggedIn) {
       reconnectAttempts.delete(a.deviceId);
       const phone = dev.jid ? String(dev.jid).split('@')[0].split(':')[0] : a.phone;

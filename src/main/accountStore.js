@@ -95,6 +95,14 @@ function setSessionLost(deviceId, value) {
   saveAccounts();
 }
 
+// manual "hold" — paused accounts are excluded from warming and left untouched
+function setPaused(deviceId, value) {
+  const a = get(deviceId);
+  if (!a) return;
+  a.paused = !!value;
+  saveAccounts();
+}
+
 // daily send counter with rollover
 function ensureDaily(a) {
   const t = todayStr();
@@ -197,6 +205,7 @@ module.exports = {
   partnersOf,
   setConnected,
   setSessionLost,
+  setPaused,
   bumpSent,
   bumpReceived,
   bumpHistory,

@@ -21,6 +21,7 @@ function accountsView() {
     jid: a.jid,
     connected: !!a.connected,
     sessionLost: !!a.sessionLost,
+    paused: !!a.paused,
     sentToday: store.sentToday(a.deviceId),
     days: store.daysWarming(a),
     sent: a.sentTotal || 0,
@@ -67,6 +68,12 @@ function register(getWindow) {
 
   ipcMain.handle('login:cancel', (_e, { deviceId }) => {
     loginFlow.cancel(deviceId);
+    return { ok: true };
+  });
+
+  ipcMain.handle('account:setPaused', (_e, { deviceId, paused }) => {
+    store.setPaused(deviceId, paused);
+    send('accounts:updated', accountsView());
     return { ok: true };
   });
 

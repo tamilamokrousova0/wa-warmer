@@ -56,6 +56,10 @@ body {
 .acct .x:hover { color: var(--red); }
 .acct .recon { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 14px; padding: 0 4px; }
 .acct .recon:hover { color: var(--green); }
+.acct .pause { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 12px; padding: 0 4px; }
+.acct .pause:hover { color: var(--amber); }
+.acct.paused { opacity: 0.6; }
+.acct.paused .phone { color: var(--amber); }
 
 .btn { border: 1px solid var(--border); background: var(--panel-2); color: var(--text); border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
 .btn:hover { border-color: var(--primary); }
