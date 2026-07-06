@@ -66,6 +66,36 @@ async function reconnectAccounts() {
   for (const delay of [3000, 5000, 8000]) { await sleep(delay); await refreshStatuses(); }
 }
 
+// Periodic maintenance: auto-recover accounts that dropped (were logged in but
+// went offline). Quick retries first, then a gentle back-off; never fully gives
+// up. Accounts that never logged in (no jid) need a QR and are left alone.
+const reconnectAttempts = new Map();
+async function maintainConnections() {
+  const warming = scheduler.isRunning();
+  for (const a of store.all()) {
+    if (a.connected) { reconnectAttempts.delete(a.deviceId); continue; }
+    if (!a.jid) continue; // never linked → needs QR
+    const tries = reconnectAttempts.get(a.deviceId) || 0;
+    reconnectAttempts.set(a.deviceId, tries + 1);
+    if (tries > 8 && tries % 10 !== 0) continue; // after ~4 min, retry only every ~5 min
+    try {
+      await client.reconnect(a.deviceId);
+      await sleep(2500);
+      const r = (await client.status(a.deviceId)).results || {};
+      if (r.is_logged_in) {
+        const phone = r.jid ? String(r.jid).split('@')[0].split(':')[0] : a.phone;
+        store.setConnected(a.deviceId, true, r.jid, phone);
+        gowa.registerWebhook(a.deviceId);
+        reconnectAttempts.delete(a.deviceId);
+        log.info('account', `аккаунт "${a.label}" авто-переподключён`);
+      }
+    } catch { /* ignore */ }
+  }
+  // when idle, refresh all statuses too (the scheduler does this while warming)
+  if (!warming) await refreshStatuses();
+  else if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('accounts:updated', ipc.accountsView());
+}
+
 // React to genuinely delivered inbound messages (best-effort; payload varies).
 function handleInbound(data) {
   try {
@@ -98,9 +128,8 @@ async function boot() {
   try {
     await gowa.start();
     await reconnectAccounts();
-    // idle status poller: keep account state fresh when warming isn't running
-    // (the scheduler polls on its own while active).
-    setInterval(() => { if (!scheduler.isRunning()) refreshStatuses().catch(() => {}); }, 30000);
+    // periodic maintenance: auto-recover dropped accounts + keep status fresh
+    setInterval(() => { maintainConnections().catch(() => {}); }, 30000);
   } catch (e) {
     log.error('gowa', `failed to start engine: ${e.message}`);
   }
