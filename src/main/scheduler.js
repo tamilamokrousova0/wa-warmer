@@ -149,21 +149,55 @@ async function pollLoop() {
   }
 }
 
-// ---- pair selection (fair + avoids busy accounts). Synchronous: caller marks busy. ----
+// how many distinct chat partners an account may have on its current warming day
+function maxPartners(acc, cfg, activeCount) {
+  const per = Math.max(1, cfg.daysPerPartner || 2);
+  const allowed = 1 + Math.floor((store.daysWarming(acc) - 1) / per);
+  return Math.min(allowed, Math.max(1, activeCount - 1));
+}
+
+// ---- pair selection: gradual partner growth, fair, avoids busy accounts.
+// Prefers existing chats; opens a NEW chat only when an account has "grown".
+// Synchronous: caller marks the pair busy immediately after.
 function pickPair(cfg) {
   const free = activeCache.filter((a) => !busy.has(a.deviceId));
   if (free.length < 2) return null;
-  const eligible = free
+  const freeIds = new Set(free.map((a) => a.deviceId));
+  const activeCount = activeCache.length;
+
+  const senders = free
     .filter((s) => store.sentToday(s.deviceId) < pacedAllowance(s, cfg))
-    .sort((x, y) => store.sentToday(x.deviceId) - store.sentToday(y.deviceId));
-  if (eligible.length === 0) return null;
-  const sender = eligible[0]; // fewest sent today
-  const partners = free
-    .filter((a) => a.deviceId !== sender.deviceId)
-    .sort((x, y) => (x.receivedTotal || 0) - (y.receivedTotal || 0));
-  if (partners.length === 0) return null;
-  const partner = partners[randInt(0, Math.min(2, partners.length - 1))]; // among 3 least-received
-  return [sender, partner];
+    .sort((x, y) => store.sentToday(x.deviceId) - store.sentToday(y.deviceId)); // fair: least active first
+
+  for (const sender of senders) {
+    const partners = store.partnersOf(sender.deviceId);
+
+    // 1) if the account is still under its (day-based) chat budget, open a NEW chat
+    const canGrow = partners.length < maxPartners(sender, cfg, activeCount);
+    if (canGrow || partners.length === 0) {
+      const notYet = free.filter((c) => c.deviceId !== sender.deviceId && !partners.includes(c.deviceId));
+      // respect the candidate's own budget; relax only to guarantee everyone gets ≥1 chat
+      const withRoom = notYet.filter((c) => store.partnersOf(c.deviceId).length < maxPartners(c, cfg, activeCount));
+      const pool = withRoom.length ? withRoom : (partners.length === 0 ? notYet : []);
+      if (pool.length) {
+        pool.sort((x, y) => store.partnersOf(x.deviceId).length - store.partnersOf(y.deviceId).length);
+        const partner = pool[0];
+        store.linkPartners(sender.deviceId, partner.deviceId);
+        log.warming(`новый чат: ${sender.label} ↔ ${partner.label}`);
+        return [sender, partner];
+      }
+    }
+
+    // 2) otherwise chat within an already-established relationship (if the partner is free)
+    const existingFree = partners.filter((id) => freeIds.has(id) && id !== sender.deviceId);
+    if (existingFree.length) {
+      const rid = existingFree[randInt(0, existingFree.length - 1)];
+      const found = activeCache.find((a) => a.deviceId === rid);
+      if (found) return [sender, found];
+    }
+    // else this sender has no available partner right now — try the next
+  }
+  return null;
 }
 
 // ---- one message with typing, optional quote, typo+edit, read receipt ----

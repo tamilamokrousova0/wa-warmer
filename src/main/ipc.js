@@ -24,6 +24,7 @@ function accountsView() {
     days: store.daysWarming(a),
     sent: a.sentTotal || 0,
     received: a.receivedTotal || 0,
+    chats: (a.partners || []).length,
     addedAt: a.addedAt,
   }));
 }

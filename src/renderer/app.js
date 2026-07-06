@@ -29,7 +29,7 @@ function accountRow(a) {
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
   li.querySelector('.phone').textContent = a.connected ? (a.phone ? '+' + a.phone : 'онлайн') : 'нужен ре-логин';
-  li.querySelector('.stats').textContent = `день ${a.days ?? 1} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
+  li.querySelector('.stats').textContent = `день ${a.days ?? 1} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
   const recon = li.querySelector('.recon');
   if (recon) recon.onclick = () => doReconnect(a);
   li.querySelector('.x').onclick = async () => {
@@ -93,6 +93,7 @@ async function loadConfig() {
   $('maxDelayMin').value = c.maxDelayMin;
   $('dailyCap').value = c.dailyCap;
   $('maxConcurrent').value = c.maxConcurrent;
+  $('daysPerPartner').value = c.daysPerPartner;
   $('rampUpDays').value = c.rampUpDays;
   $('activeStart').value = c.activeStartHour;
   $('activeEnd').value = c.activeEndHour;
@@ -110,6 +111,7 @@ function readConfig() {
     maxDelayMin: Math.max(1, +$('maxDelayMin').value || 7),
     dailyCap: Math.max(1, +$('dailyCap').value || 30),
     maxConcurrent: Math.min(24, Math.max(1, +$('maxConcurrent').value || 4)),
+    daysPerPartner: Math.max(1, +$('daysPerPartner').value || 2),
     rampUpDays: Math.max(1, +$('rampUpDays').value || 5),
     activeStartHour: Math.min(23, Math.max(0, +$('activeStart').value || 0)),
     activeEndHour: Math.min(23, Math.max(0, +$('activeEnd').value || 23)),
@@ -126,7 +128,7 @@ async function saveConfig() {
   await api.setConfig(readConfig());
 }
 ['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd',
-  'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'contactsEnabled']
+  'daysPerPartner', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'stickersEnabled', 'pollsEnabled', 'contactsEnabled']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- warming ----------

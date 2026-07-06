@@ -57,7 +57,24 @@ function upsert(acc) {
 function remove(deviceId) {
   loadAccounts();
   accounts = accounts.filter((a) => a.deviceId !== deviceId);
+  for (const a of accounts) if (a.partners) a.partners = a.partners.filter((id) => id !== deviceId);
   saveAccounts();
+}
+
+// established chat relationships (mutual, persisted) — for gradual partner growth
+function linkPartners(idA, idB) {
+  const a = get(idA);
+  const b = get(idB);
+  if (!a || !b) return;
+  a.partners = a.partners || [];
+  b.partners = b.partners || [];
+  if (!a.partners.includes(idB)) a.partners.push(idB);
+  if (!b.partners.includes(idA)) b.partners.push(idA);
+  saveAccounts();
+}
+function partnersOf(deviceId) {
+  const a = get(deviceId);
+  return (a && a.partners) || [];
 }
 
 function setConnected(deviceId, connected, jid, phone) {
@@ -145,6 +162,7 @@ const DEFAULT_CONFIG = {
   contactsEnabled: true, // exchange contact cards (vCard) on first interaction
   dailyCap: 20, // outgoing messages per account per day
   rampUpDays: 7, // grow the daily cap gradually over the first N days
+  daysPerPartner: 2, // add one new chat partner every N days (day 1 = 1 partner)
   activeStartHour: 9, // local system time
   activeEndHour: 23,
   maxConcurrent: 4, // parallel conversations (scales throughput for many accounts)
@@ -165,6 +183,8 @@ module.exports = {
   get,
   upsert,
   remove,
+  linkPartners,
+  partnersOf,
   setConnected,
   bumpSent,
   bumpReceived,
