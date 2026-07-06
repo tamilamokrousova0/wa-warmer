@@ -1,6 +1,6 @@
 {
   "name": "wa-warmer",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "description": "Portable WhatsApp account warmer with embedded GOWA engine",
   "author": "WA Warmer",
   "license": "MIT",

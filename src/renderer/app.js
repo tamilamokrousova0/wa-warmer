@@ -28,6 +28,8 @@ function nextActionText(a) {
   const now = Date.now();
   if (a.settleUntil && a.settleUntil > now) return `⏳ отлёжка · прогрев через ${fmtDuration(a.settleUntil - now)}`;
   if (!warmingRunning) return 'готов · ожидает старта';
+  if (a.activeHours === false) return '🌙 вне активных часов';
+  if (a.capReached) return `✅ дневной лимит исчерпан (${a.capToday})`;
   if (a.busy) return '🔥 сейчас в диалоге';
   if (a.nextSendAt && a.nextSendAt > now) return `🔥 следующий диалог через ${fmtDuration(a.nextSendAt - now)}`;
   return '🔥 в прогреве';

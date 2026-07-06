@@ -397,4 +397,6 @@ module.exports = {
   isRunning: () => running,
   isBusy: (id) => busy.has(id),
   nextActionAt: (id) => nextAt.get(id) || 0,
+  inActiveHoursNow: () => inActiveHours(config || store.loadConfig()),
+  dailyCapFor: (id) => { const a = store.get(id); return a ? effectiveCap(a, config || store.loadConfig()) : 0; },
 };
