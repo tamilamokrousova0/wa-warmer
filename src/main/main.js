@@ -41,8 +41,10 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-// After GOWA is ready, re-verify stored sessions (GOWA restores them from SQLite).
-async function reconnectAccounts() {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Check live connection status of every account, update store + webhook + UI.
+async function refreshStatuses() {
   for (const a of store.all()) {
     try {
       const st = await client.status(a.deviceId);
@@ -54,6 +56,14 @@ async function reconnectAccounts() {
       store.setConnected(a.deviceId, false);
     }
   }
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('accounts:updated', ipc.accountsView());
+}
+
+// After GOWA is ready, actively restore sessions (they can take a few seconds),
+// then refresh a couple of times as they come online.
+async function reconnectAccounts() {
+  for (const a of store.all()) { try { await client.reconnect(a.deviceId); } catch { /* ignore */ } }
+  for (const delay of [3000, 5000, 8000]) { await sleep(delay); await refreshStatuses(); }
 }
 
 // React to genuinely delivered inbound messages (best-effort; payload varies).
@@ -88,9 +98,9 @@ async function boot() {
   try {
     await gowa.start();
     await reconnectAccounts();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('accounts:updated', ipc.accountsView());
-    }
+    // idle status poller: keep account state fresh when warming isn't running
+    // (the scheduler polls on its own while active).
+    setInterval(() => { if (!scheduler.isRunning()) refreshStatuses().catch(() => {}); }, 30000);
   } catch (e) {
     log.error('gowa', `failed to start engine: ${e.message}`);
   }
