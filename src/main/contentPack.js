@@ -7,7 +7,7 @@ const path = require('node:path');
 const { shell } = require('electron');
 const paths = require('./paths');
 
-const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png']); // /send/image only accepts jpg/jpeg/png
 const VOICE_EXT = new Set(['.ogg', '.mp3', '.m4a', '.opus', '.aac', '.wav']);
 const STICKER_EXT = new Set(['.webp', '.png']);
 const EMOJI = ['🙂', '😄', '👍', '✨', '🔥', '😉', '👌', '💬', '☀️', '😎'];

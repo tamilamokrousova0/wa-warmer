@@ -119,16 +119,35 @@ async function startLoginWithCode(label, phone) {
   return { deviceId, code };
 }
 
+// Re-login into an EXISTING device (after a disconnect) without recreating it.
+async function relogin(deviceId) {
+  const acc = store.get(deviceId);
+  if (!acc) return { error: 'нет такого аккаунта' };
+  sessions.set(deviceId, { cancelled: false });
+  log.info('login', `ре-логин "${acc.label}"`);
+  (async () => {
+    let lastQr = 0;
+    const ok = await pollLogin(deviceId, {
+      maxSec: 150,
+      onTick: async () => { if (Date.now() - lastQr > 28000) { await refreshQr(deviceId); lastQr = Date.now(); } },
+    });
+    if (!ok && !sessions.get(deviceId)?.cancelled) events.emit('timeout', { deviceId });
+    sessions.delete(deviceId);
+  })();
+  return { deviceId };
+}
+
 function cancel(deviceId) {
   const s = sessions.get(deviceId);
   if (s) s.cancelled = true;
   sessions.delete(deviceId);
   const acc = store.get(deviceId);
-  if (acc && !acc.connected) {
+  // only discard devices that never completed a login (no jid); keep re-login targets
+  if (acc && !acc.connected && !acc.jid) {
     client.deleteDevice(deviceId).catch(() => {});
     store.remove(deviceId);
   }
   events.emit('cancel', { deviceId });
 }
 
-module.exports = { events, startLogin, startLoginWithCode, cancel, phoneFromJid };
+module.exports = { events, startLogin, startLoginWithCode, relogin, cancel, phoneFromJid };

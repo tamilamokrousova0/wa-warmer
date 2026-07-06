@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   startLoginCode: (label, phone) => ipcRenderer.invoke('login:startCode', { label, phone }),
   bulkLoginCode: (phones, prefix) => ipcRenderer.invoke('login:bulkCode', { phones, prefix }),
   cancelLogin: (deviceId) => ipcRenderer.invoke('login:cancel', { deviceId }),
+  reconnectAccount: (deviceId) => ipcRenderer.invoke('account:reconnect', { deviceId }),
   logoutAccount: (deviceId) => ipcRenderer.invoke('account:logout', { deviceId }),
   startWarming: (config) => ipcRenderer.invoke('warming:start', { config }),
   stopWarming: () => ipcRenderer.invoke('warming:stop'),

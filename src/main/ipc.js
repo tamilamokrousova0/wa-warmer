@@ -66,6 +66,27 @@ function register(getWindow) {
     return { ok: true };
   });
 
+  ipcMain.handle('account:reconnect', async (_e, { deviceId }) => {
+    try { await client.reconnect(deviceId); } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, 1800));
+    let loggedIn = false; let jid; let phone;
+    try {
+      const st = await client.status(deviceId);
+      const r = st.results || st;
+      loggedIn = !!r.is_logged_in;
+      jid = r.jid;
+      phone = r.jid ? String(r.jid).split('@')[0].split(':')[0] : undefined;
+    } catch { /* ignore */ }
+    if (loggedIn) {
+      store.setConnected(deviceId, true, jid, phone);
+      gowa.registerWebhook(deviceId);
+      send('accounts:updated', accountsView());
+      return { connected: true };
+    }
+    await loginFlow.relogin(deviceId); // session lost -> show QR for the same device
+    return { connected: false, relogin: true, deviceId };
+  });
+
   ipcMain.handle('account:logout', async (_e, { deviceId }) => {
     try {
       await client.logout(deviceId);

@@ -18,20 +18,43 @@ function accountRow(a) {
   const li = document.createElement('li');
   li.className = 'acct';
   const dotClass = a.connected ? 'dot-on' : 'dot-err';
+  const reconBtn = a.connected ? '' : '<button class="recon" title="Переподключить">↻</button>';
   li.innerHTML = `
     <span class="dot ${dotClass}"></span>
     <span class="meta">
       <span class="top"><span class="label"></span><span class="phone"></span></span>
       <span class="stats"></span>
     </span>
+    ${reconBtn}
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
   li.querySelector('.phone').textContent = a.connected ? (a.phone ? '+' + a.phone : 'онлайн') : 'нужен ре-логин';
   li.querySelector('.stats').textContent = `день ${a.days ?? 1} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
+  const recon = li.querySelector('.recon');
+  if (recon) recon.onclick = () => doReconnect(a);
   li.querySelector('.x').onclick = async () => {
     if (confirm(`Отвязать «${a.label}»?`)) { await api.logoutAccount(a.deviceId); await refreshAccounts(); }
   };
   return li;
+}
+
+async function doReconnect(a) {
+  appendLog({ ts: Date.now(), tag: 'account', level: 'info', msg: `переподключаю "${a.label}"…` });
+  const r = await api.reconnectAccount(a.deviceId);
+  if (r.connected) { refreshAccounts(); return; }
+  if (r.relogin) openReloginModal(a, r.deviceId);
+}
+function openReloginModal(a, deviceId) {
+  currentLoginDevice = deviceId;
+  $('qrLabel').value = a.label || '';
+  setMode('qr');
+  $('phoneField').classList.add('hidden');
+  $('codeStage').classList.add('hidden');
+  $('qrStage').classList.remove('hidden');
+  $('qrBox').innerHTML = '<span class="muted">получаем QR…</span>';
+  $('qrStart').disabled = true; // login already running for this device
+  $('qrHint').textContent = 'Ре-логин: отсканируйте QR тем же аккаунтом (WhatsApp → Связанные устройства).';
+  $('qrModal').classList.remove('hidden');
 }
 
 function applyAccountFilter() {
@@ -135,6 +158,7 @@ $('addBtn').onclick = () => {
   $('qrStage').classList.add('hidden');
   $('codeStage').classList.add('hidden');
   $('qrBox').innerHTML = '<span class="muted">получаем QR…</span>';
+  $('qrHint').textContent = 'WhatsApp → Настройки → Связанные устройства → Привязать устройство.';
   $('qrStart').disabled = false;
   currentLoginDevice = null;
   setMode('qr');

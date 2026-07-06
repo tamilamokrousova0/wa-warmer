@@ -72,8 +72,23 @@ async function refreshActive() {
         store.setConnected(a.deviceId, loggedIn, r.jid, phone);
       }
       if (was && !loggedIn) {
-        log.warn('warming', `аккаунт "${a.label}" отключился (logout/бан)`);
-        events.emit('loggedOut', { deviceId: a.deviceId, label: a.label });
+        // try to auto-recover before declaring a logout/ban
+        let recovered = false;
+        try {
+          await client.reconnect(a.deviceId);
+          await sleep(2000);
+          const st2 = await client.status(a.deviceId);
+          const r2 = st2.results || st2;
+          if (r2.is_logged_in) {
+            store.setConnected(a.deviceId, true, r2.jid, r2.jid ? String(r2.jid).split('@')[0].split(':')[0] : undefined);
+            log.info('warming', `аккаунт "${a.label}" переподключён`);
+            recovered = true;
+          }
+        } catch { /* ignore */ }
+        if (!recovered) {
+          log.warn('warming', `аккаунт "${a.label}" отключился (logout/бан)`);
+          events.emit('loggedOut', { deviceId: a.deviceId, label: a.label });
+        }
       }
     } catch {
       if (was) {

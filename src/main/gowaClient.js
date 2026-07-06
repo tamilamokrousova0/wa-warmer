@@ -64,6 +64,7 @@ const loginWithCode = (deviceId, phone) =>
   request('GET', `/app/login-with-code?phone=${encodeURIComponent(phone)}`, { deviceId });
 const status = (deviceId) => request('GET', '/app/status', { deviceId });
 const logout = (deviceId) => request('GET', '/app/logout', { deviceId });
+const reconnect = (deviceId) => request('GET', '/app/reconnect', { deviceId });
 
 // full JID form required by presence/read endpoints
 const toJid = (phone) => (String(phone).includes('@') ? String(phone) : `${phone}@s.whatsapp.net`);
@@ -100,11 +101,17 @@ const sendMessage = (deviceId, phone, message, replyId) =>
 const sendPoll = (deviceId, phone, question, options, maxAnswer = 1) =>
   request('POST', '/send/poll', { deviceId, json: { phone, question, options, max_answer: maxAnswer } });
 
+const MIME = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif',
+  '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+};
 function sendFileForm(deviceId, endpoint, field, filePath, extra = {}) {
   const buf = fs.readFileSync(filePath);
   const form = new FormData();
   for (const [k, v] of Object.entries(extra)) form.append(k, v);
-  form.append(field, new Blob([buf]), path.basename(filePath));
+  const type = MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+  form.append(field, new Blob([buf], { type }), path.basename(filePath));
   return request('POST', endpoint, { deviceId, body: form });
 }
 
@@ -126,6 +133,7 @@ module.exports = {
   loginWithCode,
   status,
   logout,
+  reconnect,
   chatPresence,
   presence,
   markRead,
