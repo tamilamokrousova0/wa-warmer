@@ -47,7 +47,7 @@ async function doReconnect(a) {
 function openReloginModal(a, deviceId) {
   currentLoginDevice = deviceId;
   $('qrLabel').value = a.label || '';
-  setMode('qr');
+  applyModeUI('qr'); // don't cancel: relogin already started for this device
   $('phoneField').classList.add('hidden');
   $('codeStage').classList.add('hidden');
   $('qrStage').classList.remove('hidden');
@@ -144,12 +144,22 @@ function setWarmingState(running) {
 
 // ---------- add-account modal (QR / code) ----------
 let loginMode = 'qr';
-function setMode(mode) {
+function applyModeUI(mode) {
   loginMode = mode;
   $('tabQr').classList.toggle('active', mode === 'qr');
   $('tabCode').classList.toggle('active', mode === 'code');
   $('phoneField').classList.toggle('hidden', mode !== 'code');
   $('qrStart').textContent = mode === 'qr' ? 'Получить QR' : 'Получить код';
+}
+// user clicking a tab: cancel any in-progress login and reset the modal state
+function setMode(mode) {
+  if (currentLoginDevice) { api.cancelLogin(currentLoginDevice); currentLoginDevice = null; }
+  $('qrStage').classList.add('hidden');
+  $('codeStage').classList.add('hidden');
+  $('qrBox').innerHTML = '<span class="muted">получаем QR…</span>';
+  $('codeBox').textContent = '— — — —';
+  $('qrStart').disabled = false;
+  applyModeUI(mode);
 }
 $('tabQr').onclick = () => setMode('qr');
 $('tabCode').onclick = () => setMode('code');
