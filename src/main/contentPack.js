@@ -76,9 +76,19 @@ function expandSpintax(text) {
   while (re.test(out) && guard++ < 20) out = out.replace(re, (_m, g) => pickOne(g.split('|')));
   return out;
 }
-function varyText(text) {
+// invisible zero-width characters used to make each message byte-unique
+const ZERO_WIDTH = ['​', '‌', '‍', '⁠', '﻿'];
+function noiseSuffix() {
+  const n = 2 + Math.floor(Math.random() * 5); // 2–6 invisible chars (many combinations)
+  let s = '';
+  for (let i = 0; i < n; i++) s += pickOne(ZERO_WIDTH);
+  return ' ' + s; // separated by a space, per request
+}
+
+function varyText(text, cfg = {}) {
   let t = expandSpintax(text);
   if (Math.random() < 0.25) t += ' ' + pickOne(EMOJI);
+  if (cfg.textNoise !== false) t += noiseSuffix(); // unique-ify each message (invisible)
   return t;
 }
 function pickText(recent = new Set()) {
@@ -106,16 +116,16 @@ function pick(config = {}, recent = new Set()) {
   for (const [type, weight] of Object.entries(w)) {
     if (weight <= 0) continue;
     if ((r -= weight) < 0) {
-      if (type === 'text') { const s = pickText(recent); return s ? { type, message: varyText(s), sourceText: s } : null; }
-      if (type === 'image') { const s = pickText(recent); return { type, filePath: pickOne(c.images), caption: s ? varyText(s) : '', sourceText: s }; }
-      if (type === 'link') { const s = pickText(recent); return { type: 'text', message: `${s ? varyText(s) : ''} ${pickOne(c.links)}`.trim(), sourceText: s }; }
+      if (type === 'text') { const s = pickText(recent); return s ? { type, message: varyText(s, config), sourceText: s } : null; }
+      if (type === 'image') { const s = pickText(recent); return { type, filePath: pickOne(c.images), caption: s ? varyText(s, config) : '', sourceText: s }; }
+      if (type === 'link') { const s = pickText(recent); return { type: 'text', message: `${s ? varyText(s, config) : ''} ${pickOne(c.links)}`.trim(), sourceText: s }; }
       if (type === 'voice') return { type, filePath: pickOne(c.voice) };
       if (type === 'sticker') return { type, filePath: pickOne(c.stickers) };
       if (type === 'poll') { const p = pickOne(c.polls); return { type, poll: p }; }
     }
   }
   const s = pickText(recent);
-  return s ? { type: 'text', message: varyText(s), sourceText: s } : null;
+  return s ? { type: 'text', message: varyText(s, config), sourceText: s } : null;
 }
 
 module.exports = { ensure, load, reload, get, counts, openFolder, pick };
