@@ -15,10 +15,11 @@ const logLines = [];
 let accountsCache = [];
 
 function fmtDuration(ms) {
-  const m = Math.ceil(ms / 60000);
-  if (m < 60) return m + 'м';
-  const h = Math.floor(m / 60);
-  const mm = m % 60;
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  if (s < 60) return s + 'с';
+  const m = Math.floor(s / 60), ss = s % 60;
+  if (m < 60) return m + 'м' + (ss ? ' ' + ss + 'с' : '');
+  const h = Math.floor(m / 60), mm = m % 60;
   return h + 'ч' + (mm ? ' ' + mm + 'м' : '');
 }
 // what happens next for this account, and when
@@ -26,8 +27,10 @@ function nextActionText(a) {
   if (!a.connected || a.paused) return '';
   const now = Date.now();
   if (a.settleUntil && a.settleUntil > now) return `⏳ отлёжка · прогрев через ${fmtDuration(a.settleUntil - now)}`;
-  if (warmingRunning) return `🔥 в прогреве · сегодня ${a.sentToday ?? 0}`;
-  return 'готов · ожидает старта';
+  if (!warmingRunning) return 'готов · ожидает старта';
+  if (a.busy) return '🔥 сейчас в диалоге';
+  if (a.nextSendAt && a.nextSendAt > now) return `🔥 следующий диалог через ${fmtDuration(a.nextSendAt - now)}`;
+  return '🔥 в прогреве';
 }
 
 function accountRow(a) {
@@ -108,7 +111,7 @@ function renderAccounts(list) {
   $('stopBtn').disabled = !warmingRunning;
 }
 $('acctFilter').addEventListener('input', applyAccountFilter);
-setInterval(() => { if (accountsCache.length) applyAccountFilter(); }, 30000); // keep the settle countdown live
+setInterval(() => { if (accountsCache.length) applyAccountFilter(); }, 5000); // keep the countdowns live
 
 async function refreshAccounts() {
   renderAccounts(await api.listAccounts());

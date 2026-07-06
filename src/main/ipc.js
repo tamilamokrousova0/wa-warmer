@@ -25,6 +25,8 @@ function accountsView() {
     sessionLost: !!a.sessionLost,
     paused: !!a.paused,
     settleUntil: settleMs && a.addedAt ? a.addedAt + settleMs : 0,
+    busy: scheduler.isBusy(a.deviceId),
+    nextSendAt: scheduler.nextActionAt(a.deviceId),
     sentToday: store.sentToday(a.deviceId),
     days: store.daysWarming(a),
     sent: a.sentTotal || 0,

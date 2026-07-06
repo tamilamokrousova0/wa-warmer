@@ -17,6 +17,7 @@ let activeCache = []; // logged-in accounts, refreshed by the poller
 const busy = new Set(); // deviceIds currently in a conversation
 const recentTexts = [];
 let reactivateQueue = []; // existing pairs to warm up first after Start
+const nextAt = new Map(); // deviceId -> timestamp when the account may converse again
 
 const stopBus = new EventEmitter();
 stopBus.setMaxListeners(200);
@@ -163,7 +164,9 @@ function buildReactivateQueue() {
 // prefers existing chats and opens a NEW chat only when an account has "grown".
 // Synchronous: caller marks the pair busy immediately after.
 function pickPair(cfg) {
-  const free = activeCache.filter((a) => !busy.has(a.deviceId));
+  const now = Date.now();
+  const ready = (id) => !busy.has(id) && (nextAt.get(id) || 0) <= now; // not busy & past its own rhythm
+  const free = activeCache.filter((a) => ready(a.deviceId));
   if (free.length < 2) return null;
   const freeIds = new Set(free.map((a) => a.deviceId));
   const activeCount = activeCache.length;
@@ -175,9 +178,9 @@ function pickPair(cfg) {
       const A = activeCache.find((a) => a.deviceId === x);
       const B = activeCache.find((a) => a.deviceId === y);
       if (!A || !B) { reactivateQueue.splice(i, 1); i--; continue; } // partner gone → drop
-      if (!busy.has(x) && !busy.has(y)) { reactivateQueue.splice(i, 1); return [A, B]; }
+      if (ready(x) && ready(y)) { reactivateQueue.splice(i, 1); return [A, B]; }
     }
-    return null; // queued pairs exist but are busy — wait, don't open new chats yet
+    return null; // queued pairs exist but not ready yet — wait, don't open new chats
   }
 
   const senders = free
@@ -307,10 +310,11 @@ async function worker() {
     if (!inActiveHours(config)) { await sleep(60000); continue; }
     if (activeCache.length < 2) { await sleep(10000); continue; }
 
-    const pair = pickPair(config); // synchronous grab
-    if (!pair) { await sleep(randInt(4000, 12000)); continue; }
+    const pair = pickPair(config); // synchronous grab (already gated by per-account rhythm)
+    if (!pair) { await sleep(randInt(3000, 8000)); continue; }
     const [a, b] = pair;
     busy.add(a.deviceId); busy.add(b.deviceId);
+    events.emit('accountsChanged'); // reflect "в диалоге" promptly
     try {
       log.warming(`${a.label} ⇄ ${b.label}`);
       await runConversation(a, b, config);
@@ -318,12 +322,16 @@ async function worker() {
       log.error('warming', `диалог: ${e.message}`);
     } finally {
       busy.delete(a.deviceId); busy.delete(b.deviceId);
+      // give each participant its own human-like pause before it converses again
+      const gap = () => {
+        let g = randInt(config.minDelayMin, config.maxDelayMin) * 60000 + randInt(0, 4000);
+        if (chance(0.15)) g *= randInt(2, 4);
+        return Date.now() + g;
+      };
+      nextAt.set(a.deviceId, gap());
+      nextAt.set(b.deviceId, gap());
       events.emit('accountsChanged');
     }
-    if (!running) break;
-    let gap = randInt(config.minDelayMin, config.maxDelayMin) * 60000 + randInt(0, 4000);
-    if (chance(0.15)) gap *= randInt(2, 4);
-    await sleep(gap);
   }
 }
 
@@ -360,6 +368,7 @@ function stop() {
   running = false;
   stopBus.emit('stop');
   busy.clear();
+  nextAt.clear();
   reactivateQueue = [];
   log.warming('прогрев остановлен');
   events.emit('state', { running: false });
@@ -385,4 +394,9 @@ function stats() {
   return { running, connected, total: accounts.length, active: busy.size / 2, sentTotal, receivedTotal, perAccount };
 }
 
-module.exports = { events, start, stop, stats, isRunning: () => running };
+module.exports = {
+  events, start, stop, stats,
+  isRunning: () => running,
+  isBusy: (id) => busy.has(id),
+  nextActionAt: (id) => nextAt.get(id) || 0,
+};
