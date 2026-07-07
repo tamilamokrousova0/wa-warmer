@@ -202,7 +202,7 @@ function pickPair(cfg) {
         const partner = pool[0];
         store.linkPartners(sender.deviceId, partner.deviceId);
         log.warming(`новый чат: ${sender.label} ↔ ${partner.label}`);
-        return [sender, partner];
+        return [sender, partner, true]; // isNew → first conversation is text-only
       }
     }
 
@@ -231,8 +231,11 @@ function introduceTypo(s) {
 }
 
 // returns { type, id } (id = sent message id, for quoting/reactions) or null/'empty'
-async function sendTurn(sender, receiver, cfg, replyId) {
-  const item = content.pick(cfg, new Set(recentTexts));
+async function sendTurn(sender, receiver, cfg, replyId, forceText) {
+  // WhatsApp dislikes images as the opening messages of a chat → first
+  // conversation of a new chat is text-only (no images/voice/links).
+  const pickCfg = forceText ? { ...cfg, imagesEnabled: false, voiceEnabled: false, linksEnabled: false } : cfg;
+  const item = content.pick(pickCfg, new Set(recentTexts));
   if (!item) return 'empty';
   remember(item.sourceText);
 
@@ -280,7 +283,7 @@ async function sendTurn(sender, receiver, cfg, replyId) {
   return { type: sentType, id };
 }
 
-async function runConversation(a, b, cfg) {
+async function runConversation(a, b, cfg, isNew = false) {
   const turns = randInt(2, 6);
   for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'available'); } catch { /* best */ } }
   let sender = a; let receiver = b; let lastId = null;
@@ -288,7 +291,7 @@ async function runConversation(a, b, cfg) {
     if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break;
     try {
       const replyId = i > 0 && lastId && chance(0.35) ? lastId : undefined; // sometimes quote the previous message
-      const r = await sendTurn(sender, receiver, cfg, replyId);
+      const r = await sendTurn(sender, receiver, cfg, replyId, isNew); // new chat → text-only
       if (r === null) break;
       if (r === 'empty') { log.warn('warming', 'нет контента — добавьте тексты в messages.txt'); break; }
       lastId = r.id;
@@ -310,12 +313,12 @@ async function worker() {
 
     const pair = pickPair(config); // synchronous grab (already gated by per-account rhythm)
     if (!pair) { await sleep(randInt(3000, 8000)); continue; }
-    const [a, b] = pair;
+    const [a, b, isNew] = pair;
     busy.add(a.deviceId); busy.add(b.deviceId);
     events.emit('accountsChanged'); // reflect "в диалоге" promptly
     try {
       log.warming(`${a.label} ⇄ ${b.label}`);
-      await runConversation(a, b, config);
+      await runConversation(a, b, config, isNew);
     } catch (e) {
       log.error('warming', `диалог: ${e.message}`);
     } finally {
