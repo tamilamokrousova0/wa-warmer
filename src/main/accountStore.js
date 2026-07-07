@@ -202,7 +202,7 @@ const DEFAULT_CONFIG = {
   voiceEnabled: true,
   textNoise: true, // append invisible random chars so each message is byte-unique
   settleHours: 12, // "отлёжка": wait N hours after linking before an account warms
-  dailyCap: 20, // outgoing messages per account per day
+  dailyCap: 10, // outgoing messages per account per day (ramp: 2→3→4→6→7→9→10)
   rampUpDays: 7, // grow the daily cap gradually over the first N days
   daysPerPartner: 2, // add one new chat partner every N days (day 1 = 1 partner)
   activeStartHour: 9, // local system time

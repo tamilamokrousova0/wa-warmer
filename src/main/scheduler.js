@@ -55,7 +55,7 @@ function effectiveCap(acc, cfg) {
   let cap = Math.round((cfg.dailyCap || 1) * (day / ramp));
   const dow = new Date().getDay();
   if (dow === 0 || dow === 6) cap = Math.round(cap * 0.7);
-  return Math.max(1, cap);
+  return Math.max(2, cap); // at least 2/day so day 1 isn't a single message
 }
 
 // fraction of the active-hours window elapsed so far today (0..1)
