@@ -57,6 +57,19 @@ function uniqueLabel(base) {
   while (labelExists(label)) { n += 1; label = `${base} ${n}`; }
   return label;
 }
+function rename(deviceId, newLabel) {
+  const a = get(deviceId);
+  if (!a) return { error: 'аккаунт не найден' };
+  const name = String(newLabel || '').trim();
+  if (!name) return { error: 'название не может быть пустым' };
+  const l = name.toLowerCase();
+  if (loadAccounts().some((x) => x.deviceId !== deviceId && String(x.label || '').trim().toLowerCase() === l)) {
+    return { error: `Название «${name}» уже занято` };
+  }
+  a.label = name;
+  saveAccounts();
+  return { ok: true };
+}
 
 function upsert(acc) {
   loadAccounts();
@@ -212,6 +225,7 @@ module.exports = {
   get,
   labelExists,
   uniqueLabel,
+  rename,
   upsert,
   remove,
   linkPartners,

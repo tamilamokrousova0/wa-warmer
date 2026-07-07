@@ -80,6 +80,12 @@ function register(getWindow) {
     return { ok: true };
   });
 
+  ipcMain.handle('account:rename', (_e, { deviceId, label }) => {
+    const r = store.rename(deviceId, label);
+    if (r.ok) send('accounts:updated', accountsView());
+    return r;
+  });
+
   ipcMain.handle('account:setPaused', (_e, { deviceId, paused }) => {
     store.setPaused(deviceId, paused);
     send('accounts:updated', accountsView());

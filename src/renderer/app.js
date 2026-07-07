@@ -13,6 +13,34 @@ const logLines = [];
 
 // ---------- accounts ----------
 let accountsCache = [];
+let editingId = null; // deviceId being renamed inline (suppresses re-render)
+
+function startRename(li, a) {
+  editingId = a.deviceId;
+  const top = li.querySelector('.top');
+  const input = document.createElement('input');
+  input.className = 'rename-input';
+  input.value = a.label || '';
+  top.innerHTML = '';
+  top.appendChild(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = async (save) => {
+    if (done) return; done = true;
+    editingId = null;
+    if (save) {
+      const name = input.value.trim();
+      if (name && name !== a.label) {
+        const r = await api.renameAccount(a.deviceId, name);
+        if (r && r.error) alert(r.error);
+      }
+    }
+    refreshAccounts();
+  };
+  input.onkeydown = (e) => { if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); };
+  input.onblur = () => finish(true);
+}
 
 function fmtDuration(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -49,9 +77,11 @@ function accountRow(a) {
       <span class="next small"></span>
     </span>
     ${reconBtn}
+    <button class="edit" title="Переименовать">✎</button>
     ${pauseBtn}
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
+  li.querySelector('.edit').onclick = () => startRename(li, a);
   li.querySelector('.phone').textContent = a.paused ? 'на паузе'
     : (a.connected ? (a.phone ? '+' + a.phone : 'онлайн')
       : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан')));
@@ -88,6 +118,7 @@ function openReloginModal(a, deviceId) {
 }
 
 function applyAccountFilter() {
+  if (editingId) return; // don't rebuild rows while renaming
   const q = ($('acctFilter').value || '').trim().toLowerCase();
   const ul = $('accountsList');
   ul.innerHTML = '';
