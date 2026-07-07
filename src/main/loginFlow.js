@@ -79,8 +79,19 @@ async function refreshQr(deviceId) {
   return true;
 }
 
+function findByLabel(label) {
+  const l = String(label || '').trim().toLowerCase();
+  if (!l) return null;
+  return store.all().find((a) => String(a.label || '').trim().toLowerCase() === l) || null;
+}
+
 async function startLogin(label) {
-  if (store.labelExists(label)) return { error: `Название «${label}» уже занято` };
+  const existing = findByLabel(label);
+  if (existing) {
+    // same name as an offline account → re-login it (reuse device); online → real duplicate
+    if (existing.connected) return { error: `Название «${label}» уже занято` };
+    return relogin(existing.deviceId);
+  }
   let deviceId;
   try { deviceId = await newDevice(label); } catch (e) { log.error('login', e.message); return { error: e.message }; }
   sessions.set(deviceId, { cancelled: false });
@@ -99,10 +110,8 @@ async function startLogin(label) {
   return { deviceId };
 }
 
-async function startLoginWithCode(label, phone) {
-  if (store.labelExists(label)) return { error: `Название «${label}» уже занято` };
-  let deviceId;
-  try { deviceId = await newDevice(label); } catch (e) { return { error: e.message }; }
+// request a pairing code for an existing device (no new device, no name check)
+async function codeLogin(deviceId, phone) {
   sessions.set(deviceId, { cancelled: false });
   let code = null;
   try {
@@ -121,6 +130,17 @@ async function startLoginWithCode(label, phone) {
     sessions.delete(deviceId);
   })();
   return { deviceId, code };
+}
+
+async function startLoginWithCode(label, phone) {
+  const existing = findByLabel(label);
+  if (existing) {
+    if (existing.connected) return { error: `Название «${label}» уже занято` };
+    return codeLogin(existing.deviceId, phone); // re-login the offline account by code
+  }
+  let deviceId;
+  try { deviceId = await newDevice(label); } catch (e) { return { error: e.message }; }
+  return codeLogin(deviceId, phone);
 }
 
 // Re-login into an EXISTING device (after a disconnect) without recreating it.
