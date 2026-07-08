@@ -436,7 +436,9 @@ function stats() {
     sent: a.sentTotal || 0,
     received: a.receivedTotal || 0,
     sentToday: store.sentToday(a.deviceId),
-    cap: effectiveCap(a, cfg),
+    // реальный дневной лимит отправки (aux-группы ×0.5), а не «сырой» ramp-cap —
+    // чтобы дашборд/CSV совпадали с тем, сколько аккаунт действительно шлёт.
+    cap: capFor(a, cfg),
   }));
   const connected = accounts.filter((a) => a.connected).length;
   const sentTotal = accounts.reduce((s, a) => s + (a.sentTotal || 0), 0);

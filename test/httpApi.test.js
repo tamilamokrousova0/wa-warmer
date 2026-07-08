@@ -26,6 +26,7 @@ function fakeCtx() {
       historyDays: () => [],
       get: () => null,
       uniqueLabel: (b) => b,
+      setGroup: () => {},
     },
     scheduler: { stats: () => ({ total: 1, connected: 0, sentTotal: 0, receivedTotal: 0, running: false, perAccount: [] }) },
     content: { counts: () => ({ messages: 0, links: 0, images: 0, voice: 0 }), reload: () => {} },
@@ -116,6 +117,43 @@ test('POST /api/logout-panel очищает куку', async () => {
   assert.strictEqual(res.statusCode, 200);
   const setCookie = String(res.headers['set-cookie'] || '');
   assert.ok(setCookie.includes(auth.SESSION_COOKIE), 'clearCookie шлёт заголовок для сессионной куки');
+  await app.close();
+});
+
+// --- конфиг: частичный патч не должен затирать groups с прокси --------------
+
+async function loggedInApp(ctx) {
+  const app = await buildApp(ctx);
+  await app.ready();
+  const login = await app.inject({ method: 'POST', url: '/api/login-panel', payload: { password: PASSWORD } });
+  const cookie = login.cookies.find((c) => c.name === auth.SESSION_COOKIE);
+  return { app, cookie: { [auth.SESSION_COOKIE]: cookie.value } };
+}
+
+test('POST /api/config с частичным телом НЕ теряет уже сохранённые groups с прокси', async () => {
+  const ctx = fakeCtx();
+  // stateful конфиг: стартуем с группами и заданным прокси
+  let cfg = { dailyCap: 10, groups: [{ id: 'ua', proxy: 'socks5://h:1' }, { id: 'de', proxy: '' }] };
+  ctx.store.loadConfig = () => cfg;
+  ctx.store.saveConfig = (c) => { cfg = c; return c; };
+  const { app, cookie } = await loggedInApp(ctx);
+
+  // панель шлёт лишь подмножество полей (только dailyCap)
+  const save = await app.inject({ method: 'POST', url: '/api/config', cookies: cookie, payload: { config: { dailyCap: 25 } } });
+  assert.strictEqual(save.statusCode, 200);
+
+  const res = await app.inject({ method: 'GET', url: '/api/config', cookies: cookie });
+  const body = res.json();
+  assert.strictEqual(body.dailyCap, 25, 'патч применился');
+  assert.ok(Array.isArray(body.groups) && body.groups.length === 2, 'группы сохранились');
+  assert.strictEqual(body.groups[0].proxy, 'socks5://h:1', 'прокси группы ua не потерян');
+  await app.close();
+});
+
+test('POST /api/account/set-group с несуществующей группой → 400', async () => {
+  const { app, cookie } = await loggedInApp(fakeCtx()); // группы: только ua
+  const res = await app.inject({ method: 'POST', url: '/api/account/set-group', cookies: cookie, payload: { deviceId: 'dev-1', groupId: 'zz' } });
+  assert.strictEqual(res.statusCode, 400);
   await app.close();
 });
 

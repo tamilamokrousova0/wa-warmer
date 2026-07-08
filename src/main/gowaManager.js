@@ -247,7 +247,14 @@ async function startAll() {
   const cfg = store.loadConfig();
   for (const gr of cfg.groups) {
     // eslint-disable-next-line no-await-in-loop
-    await spawnGroup(gr).catch((e) => log.error('gowa', `[${gr.id}] start failed: ${e.message}`));
+    await spawnGroup(gr).catch((e) => {
+      log.error('gowa', `[${gr.id}] start failed: ${e.message}`);
+      // Промах окна готовности/сбой спавна: назначаем повтор с капнутым
+      // бэкоффом, иначе группа осталась бы лежать навсегда (exit-guard уже
+      // обнулил eng.child, а maintainConnections пропускает недоступные группы).
+      // scheduleRestart сам уважает shuttingDown/stopping, двойного спавна нет.
+      scheduleRestart(gr.id);
+    });
   }
 }
 

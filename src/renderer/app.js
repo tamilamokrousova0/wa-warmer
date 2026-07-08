@@ -481,15 +481,37 @@ $('openContent').onclick = () => api.contentOpenFolder();
 $('reloadContent').onclick = async () => renderCounts(await api.contentReload());
 $('addImages').onclick = async () => renderCounts(await api.contentAddImages());
 
-function setGowa(s) {
-  gowaReady = !!s.ready;
+// Движков теперь пул (по одному на страну-группу). gowa.info() отдаёт МАССИВ
+// [{id,ready,port},...], а события gowa:state приходят по одной группе
+// {groupId,ready}. Держим карту готовности per-group и агрегируем: Старт
+// разрешён, пока жив хотя бы один движок, — упавший aux не должен блокировать
+// прогрев, если основной (ua) поднят.
+const gowaEngines = new Map(); // groupId -> ready(bool)
+
+function recomputeGowa() {
+  const total = gowaEngines.size;
+  const ready = [...gowaEngines.values()].filter(Boolean).length;
+  gowaReady = total > 0 && ready > 0;
   const dot = $('gowaDot');
   const txt = $('gowaText');
-  if (s.ready) { dot.className = 'dot dot-on'; txt.textContent = `движок: готов (порт ${s.port})`; }
-  else if (s.fatal) { dot.className = 'dot dot-err'; txt.textContent = 'движок: не запустился'; }
-  else if (s.restarting) { dot.className = 'dot dot-warn'; txt.textContent = 'движок: перезапуск…'; }
-  else { dot.className = 'dot dot-off'; txt.textContent = 'движок: запуск…'; }
+  if (total === 0) { dot.className = 'dot dot-off'; txt.textContent = 'движок: запуск…'; }
+  else if (ready === total) { dot.className = 'dot dot-on'; txt.textContent = `движок: готов (${ready}/${total})`; }
+  else if (ready > 0) { dot.className = 'dot dot-warn'; txt.textContent = `движок: ${ready}/${total}`; }
+  else { dot.className = 'dot dot-err'; txt.textContent = 'движок: запуск…'; }
   refreshAccounts();
+}
+
+// seed из gowa.info() (массив)
+function seedGowa(list) {
+  gowaEngines.clear();
+  if (Array.isArray(list)) for (const e of list) gowaEngines.set(e.id, !!e.ready);
+  recomputeGowa();
+}
+
+// событие по одной группе {groupId, ready}
+function setGowa(s) {
+  if (s && s.groupId) gowaEngines.set(s.groupId, !!s.ready);
+  recomputeGowa();
 }
 
 // ---------- log ----------
@@ -538,8 +560,8 @@ api.onWarmingTick((t) => {
   await refreshContent();
   await refreshAccounts();
   try {
-    const g = await api.gowaStatus();
-    setGowa(g);
+    const g = await api.gowaStatus(); // массив [{id,ready,port},...]
+    seedGowa(g);
   } catch { /* ignore */ }
   const hist = await api.logHistory();
   hist.forEach((l) => appendLog(l));

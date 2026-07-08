@@ -113,8 +113,12 @@ function register(app, ctx) {
     return { ok: true };
   });
 
-  app.post('/api/account/set-group', requireSession, async (req) => {
+  app.post('/api/account/set-group', requireSession, async (req, reply) => {
     const { deviceId, groupId } = req.body || {};
+    // Целевая группа обязана существовать — иначе аккаунт «застрянет» в
+    // несуществующей группе, которую цикл обслуживания движков пропускает.
+    const known = (store.loadConfig().groups || []).some((g) => g.id === groupId);
+    if (!known) return reply.code(400).send({ error: `unknown group id: ${groupId}` });
     store.setGroup(deviceId, groupId);
     pushAccounts();
     return { ok: true };
@@ -154,8 +158,12 @@ function register(app, ctx) {
   // ---- конфиг прогрева ----------------------------------------------------
   app.get('/api/config', requireSession, async () => store.loadConfig());
   app.post('/api/config', requireSession, async (req) => {
-    const config = (req.body && req.body.config) || req.body || {};
-    return store.saveConfig(config);
+    const patch = (req.body && req.body.config) || req.body || {};
+    // saveConfig имеет replace-семантику ({...DEFAULT_CONFIG, ...cfg}), а панель
+    // шлёт лишь подмножество полей → сливаем поверх текущего конфига, иначе
+    // groups (с прокси), warmDays, crossCountryBoost затираются и движки
+    // переподключаются DIRECT.
+    return store.saveConfig({ ...store.loadConfig(), ...patch });
   });
 
   // ---- прогрев ------------------------------------------------------------
@@ -197,6 +205,13 @@ function register(app, ctx) {
     const newGroups = (req.body && req.body.groups) || [];
     if (!Array.isArray(newGroups) || newGroups.length === 0) {
       return reply.code(400).send({ error: 'groups must be a non-empty array' });
+    }
+    // Разрешаем менять только прокси/метки существующих групп: набор id менять
+    // нельзя, иначе аккаунты осиротеют в исчезнувшей группе (её пропускает цикл
+    // обслуживания). Каждый пришедший id обязан быть среди текущих.
+    const knownIds = new Set(oldGroups.map((g) => g.id));
+    for (const g of newGroups) {
+      if (!knownIds.has(g.id)) return reply.code(400).send({ error: `unknown group id: ${g.id}` });
     }
     // Валидация прокси до сохранения (пустой прокси допустим = прямое соединение)
     for (const g of newGroups) {
