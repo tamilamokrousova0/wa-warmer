@@ -208,6 +208,8 @@ const DEFAULT_CONFIG = {
   activeStartHour: 9, // local system time
   activeEndHour: 23,
   maxConcurrent: 4, // parallel conversations (scales throughput for many accounts)
+  proxy: '', // outbound proxy for the WhatsApp connection (socks5/http/https URL);
+             // applied process-wide via GOWA's --whatsapp-proxy. Empty = direct.
 };
 
 function loadConfig() {

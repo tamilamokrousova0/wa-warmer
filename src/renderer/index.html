@@ -56,6 +56,16 @@
           <label class="check"><input id="voiceEnabled" type="checkbox" /> Голосовые</label>
           <label class="check" title="Добавляет невидимые символы, чтобы каждое сообщение было уникальным"><input id="textNoise" type="checkbox" /> Уникализация</label>
         </div>
+        <div class="proxy-row">
+          <label class="proxy-label">Прокси для WhatsApp
+            <input id="proxyUrl" type="text" spellcheck="false" autocomplete="off" placeholder="socks5://user:pass@host:1080" />
+          </label>
+          <div class="proxy-actions">
+            <button id="proxyTest" class="btn btn-mini">Проверить</button>
+            <button id="proxyApply" class="btn btn-mini btn-primary">Сохранить и применить</button>
+          </div>
+          <p id="proxyStatus" class="muted small">Один прокси на все аккаунты. Смена перезапускает движок.</p>
+        </div>
         <div class="content-line">
           <span id="contentCounts" class="muted small">сообщений: 0 · ссылок: 0 · картинок: 0</span>
           <span class="content-btns">

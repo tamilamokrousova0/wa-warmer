@@ -83,6 +83,13 @@ body {
 
 .content-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .content-btns { display: flex; gap: 5px; }
+.proxy-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.proxy-label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+.proxy-label input { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 7px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.proxy-actions { display: flex; gap: 5px; margin-top: 6px; }
+#proxyStatus { margin: 6px 0 0; word-break: break-all; }
+#proxyStatus.ok { color: var(--green); }
+#proxyStatus.err { color: var(--red); }
 .disclaimer { color: var(--amber); margin: 8px 0 0; }
 .muted { color: var(--muted); }
 .small { font-size: 11px; }

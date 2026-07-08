@@ -21,12 +21,14 @@ if (!fs.existsSync(path.join(ROOT, 'build', 'icon.png'))) {
   node('generate-icon.mjs');
 }
 
-// 2) GOWA binary for the host platform (folder key matches electron-builder ${os})
+// 2) GOWA binary for the host platform (folder key matches electron-builder ${os}).
+// Built from source (see build-gowa.mjs): the engine needs a proxy-capable build
+// that isn't in any tagged release yet. Requires the Go toolchain on the machine.
 const osToken = process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'win' : 'linux';
 const hostKey = `${osToken}-${process.arch}`;
 const exe = process.platform === 'win32' ? 'whatsapp.exe' : 'whatsapp';
 const hostBin = path.join(ROOT, 'resources', 'gowa', hostKey, exe);
 if (!fs.existsSync(hostBin)) {
-  console.log(`[ensure-assets] fetching GOWA binary for ${hostKey}...`);
-  node('fetch-gowa.mjs', ['--current']);
+  console.log(`[ensure-assets] building GOWA engine for ${hostKey} (needs Go)...`);
+  node('build-gowa.mjs', ['--current']);
 }

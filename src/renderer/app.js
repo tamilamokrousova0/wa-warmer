@@ -193,6 +193,61 @@ async function saveConfig() {
   'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
+// ---------- proxy (separate from the auto-saved warming config: it restarts the engine) ----------
+function setProxyStatus(text, kind /* 'ok' | 'err' | '' */) {
+  const el = $('proxyStatus');
+  el.textContent = text;
+  el.classList.toggle('ok', kind === 'ok');
+  el.classList.toggle('err', kind === 'err');
+}
+async function loadProxy() {
+  try {
+    const { proxy } = await api.getProxy();
+    $('proxyUrl').value = proxy || '';
+    setProxyStatus(proxy ? `Активен: ${proxy.replace(/:[^:@/]+@/, ':•••@')}` : 'Прокси не задан — прямое подключение.', '');
+  } catch { /* ignore */ }
+}
+$('proxyTest').onclick = async () => {
+  const proxy = $('proxyUrl').value.trim();
+  if (!proxy) { setProxyStatus('Введите строку прокси.', 'err'); return; }
+  const btn = $('proxyTest');
+  btn.disabled = true;
+  setProxyStatus('Проверяю…', '');
+  try {
+    const r = await api.testProxy(proxy);
+    if (r.ok) {
+      const geo = [r.city, r.country].filter(Boolean).join(', ');
+      setProxyStatus(`✓ IP ${r.ip}${geo ? ` — ${geo}` : ''}${r.isp ? ` (${r.isp})` : ''}`, 'ok');
+    } else {
+      setProxyStatus(`✕ ${r.error || 'не удалось проверить'}`, 'err');
+    }
+  } catch (e) {
+    setProxyStatus(`✕ ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+};
+$('proxyApply').onclick = async () => {
+  const proxy = $('proxyUrl').value.trim();
+  const btn = $('proxyApply');
+  btn.disabled = true;
+  setProxyStatus('Применяю, движок перезапускается…', '');
+  try {
+    const r = await api.applyProxy(proxy);
+    if (r.error) {
+      setProxyStatus(`✕ ${r.error}`, 'err');
+    } else if (r.restarted === false) {
+      setProxyStatus('Без изменений.', '');
+    } else {
+      setProxyStatus(proxy ? 'Прокси применён. Аккаунты переподключаются…' : 'Прокси отключён. Движок перезапущен.', 'ok');
+    }
+  } catch (e) {
+    setProxyStatus(`✕ ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 // ---------- warming ----------
 $('startBtn').onclick = async () => {
   await saveConfig();
@@ -428,6 +483,7 @@ api.onWarmingTick((t) => {
 // ---------- boot ----------
 (async function init() {
   await loadConfig();
+  await loadProxy();
   await refreshContent();
   await refreshAccounts();
   try {

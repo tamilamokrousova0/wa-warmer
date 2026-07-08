@@ -19,11 +19,11 @@ jobs:
         include:
           - os: macos-latest
             name: mac
-            fetch: npm run fetch-gowa           # mac build needs both x64 + arm64
+            gowa: npm run build-gowa -- --target mac-x64 --target mac-arm64  # both arches
             build: npm run build:mac
           - os: windows-latest
             name: win
-            fetch: npm run fetch-gowa -- --current  # only win-x64 needed
+            gowa: npm run build-gowa -- --current  # only win-x64 needed
             build: npm run build:win
 
     runs-on: ${{ matrix.os }}
@@ -38,13 +38,19 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
       - name: Install dependencies
         run: npm ci
 
       # prebuild hook does NOT run for build:mac / build:win, and the mac build
-      # needs BOTH arch binaries, so fetch all GOWA binaries explicitly.
-      - name: Fetch GOWA binaries
-        run: ${{ matrix.fetch }}
+      # needs BOTH arch binaries, so build all needed GOWA binaries explicitly.
+      # Built from source because proxy support isn't in a tagged release yet.
+      - name: Build GOWA engine
+        run: ${{ matrix.gowa }}
 
       - name: Generate app icon
         run: npm run icon

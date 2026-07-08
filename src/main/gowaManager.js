@@ -8,6 +8,7 @@ const { EventEmitter } = require('node:events');
 const paths = require('./paths');
 const client = require('./gowaClient');
 const webhook = require('./webhookServer');
+const store = require('./accountStore');
 const log = require('./logbus');
 
 const state = new EventEmitter();
@@ -91,8 +92,18 @@ async function spawnOnce() {
     DB_KEYS_URI: `file:${paths.gowaKeysDbPath()}`,
   };
 
-  log.gowa(`starting on 127.0.0.1:${port} (db: ${dbPath})`);
-  child = spawn(binPath, ['rest', '--port', String(port), '-b', `${user}:${pass}`], {
+  // Optional outbound proxy for the WhatsApp WebSocket (socks5/http/https).
+  // GOWA applies it process-wide via whatsmeow's SetProxyAddress, so it covers
+  // every account in this single engine process. Empty string = direct.
+  const proxy = String(store.loadConfig().proxy || '').trim();
+  const args = ['rest', '--port', String(port), '-b', `${user}:${pass}`];
+  if (proxy) {
+    env.WHATSAPP_PROXY = proxy;
+    args.push('--whatsapp-proxy', proxy);
+  }
+
+  log.gowa(`starting on 127.0.0.1:${port} (db: ${dbPath})${proxy ? ' via proxy' : ''}`);
+  child = spawn(binPath, args, {
     env,
     cwd: paths.dataDir(),
     windowsHide: true,
@@ -151,6 +162,14 @@ async function start() {
   await spawnOnce();
 }
 
+// Restart the engine so a new config (e.g. proxy change) takes effect. The
+// proxy is a process-wide setting, so every account briefly reconnects.
+async function restart() {
+  await stop();
+  restarts = 0;
+  await start();
+}
+
 async function stop() {
   shuttingDown = true;
   clearTimeout(restartTimer);
@@ -178,6 +197,7 @@ async function stop() {
 module.exports = {
   start,
   stop,
+  restart,
   state,
   registerWebhook,
   isReady: () => ready,

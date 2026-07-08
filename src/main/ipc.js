@@ -11,6 +11,7 @@ const scheduler = require('./scheduler');
 const gowa = require('./gowaManager');
 const content = require('./contentPack');
 const paths = require('./paths');
+const proxyTest = require('./proxyTest');
 const log = require('./logbus');
 
 function accountsView() {
@@ -159,6 +160,31 @@ function register(getWindow) {
     const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     fs.writeFileSync(res.filePath, '﻿' + csv);
     return { path: res.filePath };
+  });
+
+  // ---- proxy (outbound, whole engine) ----
+  ipcMain.handle('proxy:get', () => ({ proxy: store.loadConfig().proxy || '' }));
+  ipcMain.handle('proxy:test', (_e, { proxy }) => proxyTest.testProxy(proxy));
+  ipcMain.handle('proxy:apply', async (_e, { proxy }) => {
+    const value = String(proxy || '').trim();
+    if (value) {
+      const v = proxyTest.validate(value);
+      if (v.error) return { error: v.error };
+    }
+    const cfg = store.loadConfig();
+    if ((cfg.proxy || '') === value) {
+      // no change — nothing to restart
+      return { ok: true, proxy: value, restarted: false };
+    }
+    store.saveConfig({ ...cfg, proxy: value });
+    log.info('proxy', value ? 'применяю прокси, перезапуск движка…' : 'прокси отключён, перезапуск движка…');
+    try {
+      await gowa.restart();
+    } catch (e) {
+      log.error('proxy', `перезапуск движка не удался: ${e.message}`);
+      return { error: `движок не перезапустился: ${e.message}` };
+    }
+    return { ok: true, proxy: value, restarted: true };
   });
 
   ipcMain.handle('gowa:status', () => gowa.info());

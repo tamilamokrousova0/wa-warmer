@@ -7,6 +7,8 @@
   "main": "src/main/main.js",
   "scripts": {
     "fetch-gowa": "node scripts/fetch-gowa.mjs",
+    "build-gowa": "node scripts/build-gowa.mjs",
+    "seed-messages": "node scripts/seed-messages.mjs",
     "icon": "node scripts/generate-icon.mjs",
     "prestart": "node scripts/ensure-assets.mjs",
     "start": "electron .",

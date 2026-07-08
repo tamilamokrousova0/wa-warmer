@@ -1,0 +1,500 @@
+Hi, how are you?
+Hi, how’s it going?
+Hi, how have you been?
+Hi, what’s new?
+Hi, what are you up to?
+Hi, everything okay?
+Hi, how was your day?
+Hi, any plans tonight?
+Hi, have you eaten yet?
+Hi, fancy a coffee?
+Hi, how’s work?
+Hi, what are you doing?
+Hi, long time no chat, how are you?
+Hi, are you around?
+Hi, still awake?
+Hi, how’s your mood today?
+Hi, anything interesting?
+Hi, how was your weekend?
+Hi, are you home?
+Hi, busy day?
+Hi, how’s the family?
+Hi, all good?
+Hi, what are you doing tomorrow?
+Hi, any plans for the weekend?
+Hi, already up?
+Hi, how’s the weather there?
+Hi, how’s everything?
+Hi, what have you got planned?
+Hi, all quiet your side?
+Hi, long time, how’s life?
+Hey, how are you?
+Hey, how’s it going?
+Hey, how have you been?
+Hey, what’s new?
+Hey, what are you up to?
+Hey, everything okay?
+Hey, how was your day?
+Hey, any plans tonight?
+Hey, have you eaten yet?
+Hey, fancy a coffee?
+Hey, how’s work?
+Hey, what are you doing?
+Hey, long time no chat, how are you?
+Hey, are you around?
+Hey, still awake?
+Hey, how’s your mood today?
+Hey, anything interesting?
+Hey, how was your weekend?
+Hey, are you home?
+Hey, busy day?
+Hey, how’s the family?
+Hey, all good?
+Hey, what are you doing tomorrow?
+Hey, any plans for the weekend?
+Hey, already up?
+Hey, how’s the weather there?
+Hey, how’s everything?
+Hey, what have you got planned?
+Hey, all quiet your side?
+Hey, long time, how’s life?
+Hello, how are you?
+Hello, how’s it going?
+Hello, how have you been?
+Hello, what’s new?
+Hello, what are you up to?
+Hello, everything okay?
+Hello, how was your day?
+Hello, any plans tonight?
+Hello, have you eaten yet?
+Hello, fancy a coffee?
+Hello, how’s work?
+Hello, what are you doing?
+Hello, long time no chat, how are you?
+Hello, are you around?
+Hello, still awake?
+Hello, how’s your mood today?
+Hello, anything interesting?
+Hello, how was your weekend?
+Hello, are you home?
+Hello, busy day?
+Hello, how’s the family?
+Hello, all good?
+Hello, what are you doing tomorrow?
+Hello, any plans for the weekend?
+Hello, already up?
+Hello, how’s the weather there?
+Hello, how’s everything?
+Hello, what have you got planned?
+Hello, all quiet your side?
+Hello, long time, how’s life?
+Morning, how are you?
+Morning, how’s it going?
+Morning, how have you been?
+Morning, what’s new?
+Morning, what are you up to?
+Morning, everything okay?
+Morning, how was your day?
+Morning, any plans tonight?
+Morning, have you eaten yet?
+Morning, fancy a coffee?
+Morning, how’s work?
+Morning, what are you doing?
+Morning, long time no chat, how are you?
+Morning, are you around?
+Morning, still awake?
+Morning, how’s your mood today?
+Morning, anything interesting?
+Morning, how was your weekend?
+Morning, are you home?
+Morning, busy day?
+Morning, how’s the family?
+Morning, all good?
+Morning, what are you doing tomorrow?
+Morning, any plans for the weekend?
+Morning, already up?
+Morning, how’s the weather there?
+Morning, how’s everything?
+Morning, what have you got planned?
+Morning, all quiet your side?
+Morning, long time, how’s life?
+Good evening, how are you?
+Good evening, how’s it going?
+Good evening, how have you been?
+Good evening, what’s new?
+Good evening, what are you up to?
+Good evening, everything okay?
+Good evening, how was your day?
+Good evening, any plans tonight?
+Good evening, have you eaten yet?
+Good evening, fancy a coffee?
+Good evening, how’s work?
+Good evening, what are you doing?
+Good evening, long time no chat, how are you?
+Good evening, are you around?
+Good evening, still awake?
+Good evening, how’s your mood today?
+Good evening, anything interesting?
+Good evening, how was your weekend?
+Good evening, are you home?
+Good evening, busy day?
+Good evening, how’s the family?
+Good evening, all good?
+Good evening, what are you doing tomorrow?
+Good evening, any plans for the weekend?
+Good evening, already up?
+Good evening, how’s the weather there?
+Good evening, how’s everything?
+Good evening, what have you got planned?
+Good evening, all quiet your side?
+Good evening, long time, how’s life?
+Hey there, how are you?
+Hey there, how’s it going?
+Hey there, how have you been?
+Hey there, what’s new?
+Hey there, what are you up to?
+Hey there, everything okay?
+Hey there, how was your day?
+Hey there, any plans tonight?
+Hey there, have you eaten yet?
+Hey there, fancy a coffee?
+Hey there, how’s work?
+Hey there, what are you doing?
+Hey there, long time no chat, how are you?
+Hey there, are you around?
+Hey there, still awake?
+Hey there, how’s your mood today?
+Hey there, anything interesting?
+Hey there, how was your weekend?
+Hey there, are you home?
+Hey there, busy day?
+Hey there, how’s the family?
+Hey there, all good?
+Hey there, what are you doing tomorrow?
+Hey there, any plans for the weekend?
+Hey there, already up?
+Hey there, how’s the weather there?
+Hey there, how’s everything?
+Hey there, what have you got planned?
+Hey there, all quiet your side?
+Hey there, long time, how’s life?
+Hiya, how are you?
+Hiya, how’s it going?
+Hiya, how have you been?
+Hiya, what’s new?
+Hiya, what are you up to?
+Hiya, everything okay?
+Hiya, how was your day?
+Hiya, any plans tonight?
+Hiya, have you eaten yet?
+Hiya, fancy a coffee?
+Hiya, how’s work?
+Hiya, what are you doing?
+Hiya, long time no chat, how are you?
+Hiya, are you around?
+Hiya, still awake?
+Hiya, how’s your mood today?
+Hiya, anything interesting?
+Hiya, how was your weekend?
+Hiya, are you home?
+Hiya, busy day?
+Hiya, how’s the family?
+Hiya, all good?
+Hiya, what are you doing tomorrow?
+Hiya, any plans for the weekend?
+Hiya, already up?
+Hiya, how’s the weather there?
+Hiya, how’s everything?
+Hiya, what have you got planned?
+Hiya, all quiet your side?
+Hiya, long time, how’s life?
+Yo, how are you?
+Yo, how’s it going?
+Yo, how have you been?
+Yo, what’s new?
+Yo, what are you up to?
+Yo, everything okay?
+Yo, how was your day?
+Yo, any plans tonight?
+Yo, have you eaten yet?
+Yo, fancy a coffee?
+Yo, how’s work?
+Yo, what are you doing?
+Yo, long time no chat, how are you?
+Yo, are you around?
+Yo, still awake?
+Yo, how’s your mood today?
+Yo, anything interesting?
+Yo, how was your weekend?
+Yo, are you home?
+Yo, busy day?
+Yo, how’s the family?
+Yo, all good?
+Yo, what are you doing tomorrow?
+Yo, any plans for the weekend?
+Yo, already up?
+Yo, how’s the weather there?
+Yo, how’s everything?
+Yo, what have you got planned?
+Yo, all quiet your side?
+Yo, long time, how’s life?
+Hi there, how are you?
+Hi there, how’s it going?
+Hi there, how have you been?
+Hi there, what’s new?
+Hi there, what are you up to?
+Hi there, everything okay?
+Hi there, how was your day?
+Hi there, any plans tonight?
+Hi there, have you eaten yet?
+Hi there, fancy a coffee?
+Hi there, how’s work?
+Hi there, what are you doing?
+Hi there, long time no chat, how are you?
+Hi there, are you around?
+Hi there, still awake?
+Hi there, how’s your mood today?
+Hi there, anything interesting?
+Hi there, how was your weekend?
+Hi there, are you home?
+Hi there, busy day?
+Hi there, how’s the family?
+Hi there, all good?
+Hi there, what are you doing tomorrow?
+Hi there, any plans for the weekend?
+Hi there, already up?
+Hi there, how’s the weather there?
+Hi there, how’s everything?
+Hi there, what have you got planned?
+Hi there, all quiet your side?
+Hi there, long time, how’s life?
+Heya, how are you?
+Heya, how’s it going?
+Heya, how have you been?
+Heya, what’s new?
+Heya, what are you up to?
+Heya, everything okay?
+Heya, how was your day?
+Heya, any plans tonight?
+Heya, have you eaten yet?
+Heya, fancy a coffee?
+Heya, how’s work?
+Heya, what are you doing?
+Heya, long time no chat, how are you?
+Heya, are you around?
+Heya, still awake?
+Heya, how’s your mood today?
+Heya, anything interesting?
+Heya, how was your weekend?
+Heya, are you home?
+Heya, busy day?
+Heya, how’s the family?
+Heya, all good?
+Heya, what are you doing tomorrow?
+Heya, any plans for the weekend?
+Heya, already up?
+Heya, how’s the weather there?
+Heya, how’s everything?
+Heya, what have you got planned?
+Heya, all quiet your side?
+Heya, long time, how’s life?
+Alright, how are you?
+Alright, how’s it going?
+Alright, how have you been?
+Alright, what’s new?
+Alright, what are you up to?
+Alright, everything okay?
+Alright, how was your day?
+Alright, any plans tonight?
+Alright, have you eaten yet?
+Alright, fancy a coffee?
+Alright, how’s work?
+Alright, what are you doing?
+Alright, long time no chat, how are you?
+Alright, are you around?
+Alright, still awake?
+Alright, how’s your mood today?
+Alright, anything interesting?
+Alright, how was your weekend?
+Alright, are you home?
+Alright, busy day?
+Alright, how’s the family?
+Alright, all good?
+Alright, what are you doing tomorrow?
+Alright, any plans for the weekend?
+Alright, already up?
+Alright, how’s the weather there?
+Alright, how’s everything?
+Alright, what have you got planned?
+Alright, all quiet your side?
+Alright, long time, how’s life?
+Evening, how are you?
+Evening, how’s it going?
+Evening, how have you been?
+Evening, what’s new?
+Evening, what are you up to?
+Evening, everything okay?
+Evening, how was your day?
+Evening, any plans tonight?
+Evening, have you eaten yet?
+Evening, fancy a coffee?
+Evening, how’s work?
+Evening, what are you doing?
+Evening, long time no chat, how are you?
+Evening, are you around?
+Evening, still awake?
+Evening, how’s your mood today?
+Evening, anything interesting?
+Evening, how was your weekend?
+Evening, are you home?
+Evening, busy day?
+Evening, how’s the family?
+Evening, all good?
+Evening, what are you doing tomorrow?
+Evening, any plans for the weekend?
+Evening, already up?
+Evening, how’s the weather there?
+Evening, how’s everything?
+Evening, what have you got planned?
+Evening, all quiet your side?
+Evening, long time, how’s life?
+Hi!
+Good morning!
+Good afternoon!
+Good evening!
+Good night!
+Thanks!
+Thank you so much!
+You’re welcome.
+No problem.
+Sorry for the late reply.
+Agreed.
+Exactly.
+Interesting.
+Good idea!
+Sounds good.
+Got it.
+I see.
+It’s a deal.
+Okay, let’s do that.
+No worries.
+See you soon!
+Take care!
+Have a nice day!
+Have a good evening!
+Look after yourself.
+Stay well!
+I’ll call you later.
+I’ll message you soon.
+Good to hear from you.
+I was thinking about you.
+I’m having coffee.
+Just got up.
+I haven’t had breakfast yet.
+I’m at work right now.
+I’m a bit tired.
+Finally, a day off.
+Just relaxing at home.
+Lots to do today.
+The sun is out, lovely.
+I love days like this.
+Do you want to grab a coffee?
+Do you want to go for a walk?
+Do you want to meet up?
+Do you want to have a call?
+Do you want to have lunch?
+Do you want to watch a film?
+Do you want to step out for a bit?
+Do you want to do something?
+Do you want to meet tomorrow?
+Do you want to catch up?
+Do you want to sit in a café?
+Do you want to take a break?
+Shall we grab a coffee?
+Shall we go for a walk?
+Shall we meet up?
+Shall we have a call?
+Shall we have lunch?
+Shall we watch a film?
+Shall we step out for a bit?
+Shall we do something?
+Shall we meet tomorrow?
+Shall we catch up?
+Shall we sit in a café?
+Shall we take a break?
+How about we grab a coffee?
+How about we go for a walk?
+How about we meet up?
+How about we have a call?
+How about we have lunch?
+How about we watch a film?
+How about we step out for a bit?
+How about we do something?
+How about we meet tomorrow?
+How about we catch up?
+How about we sit in a café?
+How about we take a break?
+Fancy heading out to grab a coffee?
+Fancy heading out to go for a walk?
+Fancy heading out to meet up?
+Fancy heading out to have a call?
+Fancy heading out to have lunch?
+Fancy heading out to watch a film?
+Fancy heading out to step out for a bit?
+Fancy heading out to do something?
+Fancy heading out to meet tomorrow?
+Fancy heading out to catch up?
+Fancy heading out to sit in a café?
+Fancy heading out to take a break?
+I still need to work.
+I still need to do some shopping.
+I still need to get some sleep.
+I still need to make a call.
+I still need to finish something.
+I still need to cook.
+I still need to tidy up.
+I still need to get ready.
+I still need to make dinner.
+I still need to sort a few things out.
+I have to work.
+I have to do some shopping.
+I have to get some sleep.
+I have to make a call.
+I have to finish something.
+I have to cook.
+I have to tidy up.
+I have to get ready.
+I have to make dinner.
+I have to sort a few things out.
+I want to work.
+I want to do some shopping.
+I want to get some sleep.
+I want to make a call.
+I want to finish something.
+I want to cook.
+I want to tidy up.
+I want to get ready.
+I want to make dinner.
+I want to sort a few things out.
+Have you eaten yet?
+Have you had breakfast yet?
+Have you awake yet?
+Have you home yet?
+Have you at work yet?
+Have you done with work yet?
+Have you free yet?
+Have you busy yet?
+Have you rested yet?
+Have you finished yet?
+Are you eaten yet?
+Are you had breakfast yet?
+Are you awake yet?
+Are you home yet?
+Are you at work yet?
+Are you done with work yet?
+Are you free yet?
+Are you busy yet?
+Are you rested yet?
+Are you finished yet?
+What a lovely day today!
+What a cold day today!
