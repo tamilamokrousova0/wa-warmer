@@ -76,9 +76,9 @@ function dbPathFor(groupId) {
 
 const keysDbPathFor = (dbPath) => dbPath.replace(/whatsapp\.db$/, 'keys.db');
 
-// Direct readiness probe — deliberately NOT via gowaClient (that module is
-// still single-baseUrl until the next task). Any HTTP response (even 4xx)
-// proves the REST server on this port is up.
+// Direct readiness probe — deliberately NOT via gowaClient/engineRouter: this
+// engine isn't registered in `engines` yet, so the router couldn't resolve it
+// anyway. Any HTTP response (even 4xx) proves the REST server on this port is up.
 async function probeUp(port, auth) {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/devices`, { headers: { Authorization: auth } });
@@ -267,9 +267,9 @@ async function restartGroup(groupId) {
   await spawnGroup(gr).catch((e) => log.error('gowa', `[${groupId}] restart failed: ${e.message}`));
 }
 
-// Point a logged-in device's webhook at our local receiver (best-effort). Still
-// routed through the single-baseUrl gowaClient for now; the next task makes the
-// client per-engine so this hits the right process.
+// Point a logged-in device's webhook at our local receiver (best-effort).
+// gowaClient resolves the device's own group engine internally, so this
+// always hits the right process.
 async function registerWebhook(deviceId) {
   const url = webhook.getUrl();
   if (!url) return;
