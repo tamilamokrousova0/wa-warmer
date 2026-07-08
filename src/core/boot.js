@@ -14,6 +14,7 @@ const client = require('../main/gowaClient');
 const store = require('../main/accountStore');
 const gowa = require('../main/gowaManager');
 const webhook = require('../main/webhookServer');
+const loginFlow = require('../main/loginFlow');
 const paths = require('../main/paths');
 const log = require('../main/logbus');
 
@@ -190,6 +191,24 @@ async function boot({ emit: sink } = {}) {
     });
   });
   webhook.events.on('inbound', handleInbound);
+
+  // проброс событий на веб-панель по WS — те же каналы и формы payload, что
+  // раньше слал ipc.js (секция «main -> renderer»). Без этого в браузере не
+  // появляется QR при добавлении, пуст живой лог и не идут апдейты прогрева.
+  log.on((line) => emit('log:line', line));
+
+  loginFlow.events.on('qr', (p) => emit('login:qr', p));
+  loginFlow.events.on('code', (p) => emit('login:code', p));
+  loginFlow.events.on('success', (p) => { emit('login:success', p); emit('accounts:updated', accountsView()); });
+  loginFlow.events.on('timeout', (p) => emit('login:timeout', p));
+  loginFlow.events.on('cancel', (p) => emit('login:cancel', p));
+
+  scheduler.events.on('tick', (p) => emit('warming:tick', p));
+  scheduler.events.on('state', (p) => emit('warming:state', p));
+  scheduler.events.on('accountsChanged', () => emit('accounts:updated', accountsView()));
+  scheduler.events.on('loggedOut', (p) => { emit('account:loggedOut', p); emit('accounts:updated', accountsView()); });
+
+  gowa.state.on('state', (p) => emit('gowa:state', p));
 
   try {
     await gowa.startAll();
