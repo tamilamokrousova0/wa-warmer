@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const paths = require('./paths');
+const groups = require('./groups');
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (local-ish, UTC date)
@@ -210,16 +211,52 @@ const DEFAULT_CONFIG = {
   maxConcurrent: 4, // parallel conversations (scales throughput for many accounts)
   proxy: '', // outbound proxy for the WhatsApp connection (socks5/http/https URL);
              // applied process-wide via GOWA's --whatsapp-proxy. Empty = direct.
+             // Legacy field: migrateGroups() moves its value into group `ua`'s proxy.
+  warmDays: 10, // total warm-up duration in days (ramp/partner growth window)
+  crossCountryBoost: true, // allow aux-country groups to warm up UA numbers via cross-group chats
 };
 
 function loadConfig() {
-  return { ...DEFAULT_CONFIG, ...readJson(paths.configFile(), {}) };
+  const c = { ...DEFAULT_CONFIG, ...readJson(paths.configFile(), {}) };
+  // всегда гарантируем непустой список групп, даже если миграция ещё не запускалась
+  if (!Array.isArray(c.groups) || c.groups.length === 0) c.groups = groups.DEFAULT_GROUPS.map((x) => ({ ...x }));
+  return c;
 }
 
 function saveConfig(cfg) {
   const merged = { ...DEFAULT_CONFIG, ...cfg };
   writeJsonAtomic(paths.configFile(), merged);
   return merged;
+}
+
+// ---- group migration ----
+// Идемпотентно: группы сеются только если отсутствуют, groupId проставляется
+// только аккаунтам без него. Безопасно вызывать при каждом старте приложения.
+function migrateGroups() {
+  const cfg = readJson(paths.configFile(), {});
+  if (!Array.isArray(cfg.groups) || cfg.groups.length === 0) {
+    cfg.groups = groups.DEFAULT_GROUPS.map((x) => ({ ...x }));
+    if (cfg.proxy) cfg.groups[0].proxy = cfg.proxy; // старое одно-прокси поле → группа ua
+    writeJsonAtomic(paths.configFile(), { ...DEFAULT_CONFIG, ...cfg });
+  }
+  loadAccounts();
+  let changed = false;
+  for (const a of accounts) if (!a.groupId) { a.groupId = 'ua'; changed = true; }
+  if (changed) saveAccounts();
+}
+
+function setGroup(deviceId, groupId) {
+  const a = get(deviceId);
+  if (a) { a.groupId = groupId; saveAccounts(); }
+}
+
+function setReady(deviceId, value) {
+  const a = get(deviceId);
+  if (a && !!a.ready !== !!value) { a.ready = !!value; saveAccounts(); }
+}
+
+function accountsInGroup(groupId) {
+  return loadAccounts().filter((a) => (a.groupId || 'ua') === groupId);
 }
 
 module.exports = {
@@ -245,4 +282,8 @@ module.exports = {
   loadConfig,
   saveConfig,
   DEFAULT_CONFIG,
+  migrateGroups,
+  setGroup,
+  setReady,
+  accountsInGroup,
 };
