@@ -83,13 +83,31 @@ body {
 
 .content-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .content-btns { display: flex; gap: 5px; }
-.proxy-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-.proxy-label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
-.proxy-label input { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 7px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.proxy-actions { display: flex; gap: 5px; margin-top: 6px; }
-#proxyStatus { margin: 6px 0 0; word-break: break-all; }
-#proxyStatus.ok { color: var(--green); }
-#proxyStatus.err { color: var(--red); }
+/* ---- группы (per-group прокси) ---- */
+.groups-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.groups-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.groups-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.groups-list { display: flex; flex-direction: column; gap: 6px; }
+.group-row { display: grid; grid-template-columns: 110px 1fr auto; grid-template-areas: "info proxy test" "info result result"; align-items: center; gap: 5px 7px; }
+.group-info { grid-area: info; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.group-proxy { grid-area: proxy; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 7px; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 0; }
+.group-test { grid-area: test; white-space: nowrap; }
+.group-result { grid-area: result; word-break: break-all; }
+.group-result.ok { color: var(--green); }
+.group-result.err { color: var(--red); }
+#groupsStatus { margin: 6px 0 0; word-break: break-all; }
+#groupsStatus.ok { color: var(--green); }
+#groupsStatus.err { color: var(--red); }
+
+/* ---- бейдж группы (карточка аккаунта + строка группы) ---- */
+.group-badge { display: inline-block; font-size: 10px; line-height: 1; padding: 2px 6px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); white-space: nowrap; }
+.grp-ua { border-color: #3a6ea5; color: #7fb4ff; }
+.grp-de { border-color: #a58b3a; color: #e6c76a; }
+.grp-pl { border-color: #a53a4a; color: #ff8ea0; }
+.grp-uk { border-color: #3aa56e; color: #7fe2b4; }
+.acct .group-badge { align-self: center; }
+
+.group-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 7px; font-size: 12px; }
 .disclaimer { color: var(--amber); margin: 8px 0 0; }
 .muted { color: var(--muted); }
 .small { font-size: 11px; }

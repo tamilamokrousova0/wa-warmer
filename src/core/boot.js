@@ -32,6 +32,8 @@ function accountsView() {
     label: a.label,
     phone: a.phone,
     jid: a.jid,
+    groupId: a.groupId || 'ua',   // страновая группа аккаунта (для бейджа в UI)
+    ready: !!a.ready,             // «прогрет» — вышел из ротации (для бейджа в UI)
     connected: !!a.connected,
     sessionLost: !!a.sessionLost,
     paused: !!a.paused,

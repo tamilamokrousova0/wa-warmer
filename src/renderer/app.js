@@ -72,7 +72,7 @@ function accountRow(a) {
   li.innerHTML = `
     <span class="dot ${dotClass}"></span>
     <span class="meta">
-      <span class="top"><span class="label"></span><span class="phone"></span></span>
+      <span class="top"><span class="label"></span><span class="group-badge"></span><span class="phone"></span></span>
       <span class="stats"></span>
       <span class="next small"></span>
     </span>
@@ -81,11 +81,15 @@ function accountRow(a) {
     ${pauseBtn}
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
+  const gid = a.groupId || 'ua';
+  const badge = li.querySelector('.group-badge');
+  badge.textContent = groupLabel(gid);
+  badge.classList.add('grp-' + gid);
   li.querySelector('.edit').onclick = () => startRename(li, a);
   li.querySelector('.phone').textContent = a.paused ? 'на паузе'
     : (a.connected ? (a.phone ? '+' + a.phone : 'онлайн')
       : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан')));
-  li.querySelector('.stats').textContent = `день ${a.days ?? 1} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
+  li.querySelector('.stats').textContent = `${a.ready ? '✅ прогрет' : 'день ' + (a.days ?? 1)} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
   const nextEl = li.querySelector('.next');
   const nextTxt = nextActionText(a);
   if (nextTxt) nextEl.textContent = nextTxt; else nextEl.style.display = 'none';
@@ -193,56 +197,95 @@ async function saveConfig() {
   'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
-// ---------- proxy (separate from the auto-saved warming config: it restarts the engine) ----------
-function setProxyStatus(text, kind /* 'ok' | 'err' | '' */) {
-  const el = $('proxyStatus');
+// ---------- groups (per-group proxy; saving restarts changed engines) ----------
+let groupsCache = [];
+const ROLE_RU = { primary: 'основная', aux: 'вспомог.' };
+function groupLabel(id) { const g = groupsCache.find((x) => x.id === id); return g ? g.label : id; }
+
+function setGroupsStatus(text, kind /* 'ok' | 'err' | '' */) {
+  const el = $('groupsStatus');
   el.textContent = text;
   el.classList.toggle('ok', kind === 'ok');
   el.classList.toggle('err', kind === 'err');
 }
-async function loadProxy() {
-  try {
-    const { proxy } = await api.getProxy();
-    $('proxyUrl').value = proxy || '';
-    setProxyStatus(proxy ? `Активен: ${proxy.replace(/:[^:@/]+@/, ':•••@')}` : 'Прокси не задан — прямое подключение.', '');
-  } catch { /* ignore */ }
+
+function groupRow(g) {
+  const div = document.createElement('div');
+  div.className = 'group-row';
+  div.dataset.id = g.id;
+  div.innerHTML = `
+    <div class="group-info">
+      <span class="group-badge grp-${g.id}">${g.label}</span>
+      <span class="group-role muted small">${g.country} · ${ROLE_RU[g.role] || g.role}</span>
+    </div>
+    <input class="group-proxy" type="text" spellcheck="false" autocomplete="off" placeholder="socks5://user:pass@host:1080" />
+    <button class="btn btn-mini group-test">Проверить</button>
+    <span class="group-result muted small"></span>`;
+  div.querySelector('.group-proxy').value = g.proxy || '';
+  const resEl = div.querySelector('.group-result');
+  div.querySelector('.group-test').onclick = async (e) => {
+    const proxy = div.querySelector('.group-proxy').value.trim();
+    resEl.className = 'group-result muted small';
+    if (!proxy) { resEl.textContent = 'прямое подключение'; return; }
+    e.target.disabled = true;
+    resEl.textContent = 'проверяю…';
+    try {
+      const r = await api.testProxy(proxy);
+      if (r.ok) {
+        const geo = [r.city, r.country].filter(Boolean).join(', ');
+        resEl.textContent = `✓ ${r.ip}${geo ? ` — ${geo}` : ''}`;
+        resEl.classList.add('ok');
+      } else {
+        resEl.textContent = `✕ ${r.error || 'не удалось'}`;
+        resEl.classList.add('err');
+      }
+    } catch (err) {
+      resEl.textContent = `✕ ${err.message}`;
+      resEl.classList.add('err');
+    } finally {
+      e.target.disabled = false;
+    }
+  };
+  return div;
 }
-$('proxyTest').onclick = async () => {
-  const proxy = $('proxyUrl').value.trim();
-  if (!proxy) { setProxyStatus('Введите строку прокси.', 'err'); return; }
-  const btn = $('proxyTest');
+
+function populateGroupSelect() {
+  const sel = $('qrGroup');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = groupsCache.map((g) => `<option value="${g.id}">${g.label} (${g.country})</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function renderGroups(list) {
+  groupsCache = Array.isArray(list) ? list : [];
+  const box = $('groupsList');
+  box.innerHTML = '';
+  for (const g of groupsCache) box.appendChild(groupRow(g));
+  populateGroupSelect();
+}
+
+async function loadGroups() {
+  try { renderGroups(await api.getGroups()); } catch { /* ignore */ }
+}
+
+$('groupsSave').onclick = async () => {
+  const rows = [...document.querySelectorAll('#groupsList .group-row')];
+  const groups = rows.map((row) => {
+    const base = groupsCache.find((x) => x.id === row.dataset.id) || { id: row.dataset.id };
+    return { ...base, proxy: row.querySelector('.group-proxy').value.trim() };
+  });
+  const btn = $('groupsSave');
   btn.disabled = true;
-  setProxyStatus('Проверяю…', '');
+  setGroupsStatus('Сохраняю, движки перезапускаются…', '');
   try {
-    const r = await api.testProxy(proxy);
-    if (r.ok) {
-      const geo = [r.city, r.country].filter(Boolean).join(', ');
-      setProxyStatus(`✓ IP ${r.ip}${geo ? ` — ${geo}` : ''}${r.isp ? ` (${r.isp})` : ''}`, 'ok');
-    } else {
-      setProxyStatus(`✕ ${r.error || 'не удалось проверить'}`, 'err');
-    }
+    const r = await api.saveGroups(groups);
+    if (r && r.error) { setGroupsStatus(`✕ ${r.error}`, 'err'); return; }
+    groupsCache = r.groups || groups;
+    const n = (r.restarted || []).length;
+    setGroupsStatus(n ? `Сохранено. Перезапущены движки: ${r.restarted.join(', ')}.` : 'Сохранено. Без изменений прокси.', 'ok');
   } catch (e) {
-    setProxyStatus(`✕ ${e.message}`, 'err');
-  } finally {
-    btn.disabled = false;
-  }
-};
-$('proxyApply').onclick = async () => {
-  const proxy = $('proxyUrl').value.trim();
-  const btn = $('proxyApply');
-  btn.disabled = true;
-  setProxyStatus('Применяю, движок перезапускается…', '');
-  try {
-    const r = await api.applyProxy(proxy);
-    if (r.error) {
-      setProxyStatus(`✕ ${r.error}`, 'err');
-    } else if (r.restarted === false) {
-      setProxyStatus('Без изменений.', '');
-    } else {
-      setProxyStatus(proxy ? 'Прокси применён. Аккаунты переподключаются…' : 'Прокси отключён. Движок перезапущен.', 'ok');
-    }
-  } catch (e) {
-    setProxyStatus(`✕ ${e.message}`, 'err');
+    setGroupsStatus(`✕ ${e.message}`, 'err');
   } finally {
     btn.disabled = false;
   }
@@ -286,6 +329,7 @@ $('tabCode').onclick = () => setMode('code');
 $('addBtn').onclick = () => {
   $('qrLabel').value = '';
   $('qrPhone').value = '';
+  if ($('qrGroup').options.length) $('qrGroup').value = 'ua';
   $('qrStage').classList.add('hidden');
   $('codeStage').classList.add('hidden');
   $('qrBox').innerHTML = '<span class="muted">получаем QR…</span>';
@@ -310,12 +354,19 @@ function showAddError(msg) {
   $('qrBox').innerHTML = '';
   $('qrStart').disabled = false;
 }
+// автозаполнение группы по префиксу номера (клиентский помощник api.detectGroup)
+$('qrPhone').addEventListener('input', () => {
+  const gid = api.detectGroup($('qrPhone').value);
+  if (gid) $('qrGroup').value = gid;
+});
+
 $('qrStart').onclick = async () => {
   const label = $('qrLabel').value.trim() || 'Аккаунт';
+  const groupId = $('qrGroup').value || 'ua';
   $('qrStart').disabled = true;
   $('qrHint').style.color = '';
   if (loginMode === 'qr') {
-    const r = await api.startLogin(label);
+    const r = await api.startLogin(label, groupId);
     if (r.error) { showAddError(r.error); return; }
     $('codeStage').classList.add('hidden');
     $('qrHint').textContent = 'WhatsApp → Настройки → Связанные устройства → Привязать устройство. Сканируйте сразу — код обновляется каждые 20с.';
@@ -325,7 +376,7 @@ $('qrStart').onclick = async () => {
   } else {
     const phone = $('qrPhone').value.replace(/[^0-9]/g, '');
     if (!phone) { $('qrStart').disabled = false; return; }
-    const r = await api.startLoginCode(label, phone);
+    const r = await api.startLoginCode(label, phone, groupId);
     if (r.error) { showAddError(r.error); return; }
     $('qrStage').classList.add('hidden');
     $('codeStage').classList.remove('hidden');
@@ -483,7 +534,7 @@ api.onWarmingTick((t) => {
 // ---------- boot ----------
 (async function init() {
   await loadConfig();
-  await loadProxy();
+  await loadGroups();
   await refreshContent();
   await refreshAccounts();
   try {
