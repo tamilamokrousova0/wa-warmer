@@ -7,6 +7,7 @@ const { EventEmitter } = require('node:events');
 const client = require('./gowaClient');
 const store = require('./accountStore');
 const content = require('./contentPack');
+const groups = require('./groups');
 const log = require('./logbus');
 
 const events = new EventEmitter();
@@ -49,13 +50,39 @@ function inActiveHours(cfg) {
   return s < e ? h >= s && h < e : h >= s || h < e;
 }
 
+// день прогрева аккаунта; __day — тестовый seam, иначе считаем от addedAt
+const dayOf = (acc) => (acc && acc.__day != null ? acc.__day : store.daysWarming(acc));
+
 function effectiveCap(acc, cfg) {
   const ramp = Math.max(1, cfg.rampUpDays || 1);
-  const day = Math.min(store.daysWarming(acc), ramp);
+  const day = Math.min(dayOf(acc), ramp);
   let cap = Math.round((cfg.dailyCap || 1) * (day / ramp));
   const dow = new Date().getDay();
   if (dow === 0 || dow === 6) cap = Math.round(cap * 0.7);
   return Math.max(2, cap); // at least 2/day so day 1 isn't a single message
+}
+
+// ---- страна-центричные правила прогрева ----
+// Подбор пары по стране: своя группа — всегда; кросс-страна — только если включён
+// буст И ОБА участника в последних двух днях прогрева (дни 9 и 10 при warmDays=10).
+function canPair(a, b, cfg) {
+  if (a.groupId === b.groupId) return true;
+  if (!cfg.crossCountryBoost) return false;
+  const last2 = (d) => d >= (cfg.warmDays || 10) - 1; // окно последних двух дней
+  return last2(dayOf(a)) && last2(dayOf(b));
+}
+
+// аккаунт «прогрет», когда достиг полного срока прогрева (по умолчанию 10 дней)
+function isReadyDay(acc, cfg) {
+  return dayOf(acc) >= (cfg.warmDays || 10);
+}
+
+// дневная норма отправки: ramp с плато (effectiveCap), у aux-групп — вдвое меньше,
+// но не ниже 2 сообщений в день.
+function capFor(acc, cfg) {
+  const base = effectiveCap(acc, cfg);
+  const grp = groups.groupOf(cfg.groups, acc);
+  return grp && grp.role === 'aux' ? Math.max(2, Math.round(base * 0.5)) : base;
 }
 
 // fraction of the active-hours window elapsed so far today (0..1)
@@ -75,7 +102,7 @@ function activeFraction(cfg) {
 // Anti-spike: an account's allowance grows smoothly from ~1 to its daily cap
 // across the active window, so volume ramps up gradually instead of spiking.
 function pacedAllowance(acc, cfg) {
-  return Math.max(1, Math.ceil(effectiveCap(acc, cfg) * activeFraction(cfg)));
+  return Math.max(1, Math.ceil(capFor(acc, cfg) * activeFraction(cfg)));
 }
 
 // "отлёжка": a freshly linked account waits before it starts warming
@@ -126,7 +153,21 @@ async function refreshActive() {
       }
     }
   });
-  activeCache = store.all().filter((a) => a.connected && a.phone && !a.paused && isSettled(a, config));
+  // кандидаты на прогрев; прогретые (ready) аккаунты выпадают из ротации
+  const candidates = store.all().filter((a) => a.connected && a.phone && !a.paused && isSettled(a, config));
+  activeCache = [];
+  for (const a of candidates) {
+    // достиг полного срока — пометить готовым один раз и вывести из ротации
+    if (config && isReadyDay(a, config)) {
+      if (!a.ready) {
+        store.setReady(a.deviceId, true);
+        log.warming(`аккаунт "${a.label}" готов (${config.warmDays || 10} дней)`);
+      }
+      continue;
+    }
+    if (a.ready) continue; // уже помечен готовым ранее — не греем
+    activeCache.push(a);
+  }
   return activeCache;
 }
 
@@ -178,6 +219,9 @@ function pickPair(cfg) {
       const A = activeCache.find((a) => a.deviceId === x);
       const B = activeCache.find((a) => a.deviceId === y);
       if (!A || !B) { reactivateQueue.splice(i, 1); i--; continue; } // partner gone → drop
+      // кросс-страна оживляется только в дни 9–10; иначе снимаем пару из очереди,
+      // чтобы она не блокировала рост, — её подхватит обычный путь по достижении окна
+      if (!canPair(A, B, cfg)) { reactivateQueue.splice(i, 1); i--; continue; }
       if (ready(x) && ready(y)) { reactivateQueue.splice(i, 1); return [A, B]; }
     }
     return null; // queued pairs exist but not ready yet — wait, don't open new chats
@@ -193,7 +237,8 @@ function pickPair(cfg) {
     // 1) if the account is still under its (day-based) chat budget, open a NEW chat
     const canGrow = partners.length < maxPartners(sender, cfg, activeCount);
     if (canGrow || partners.length === 0) {
-      const notYet = free.filter((c) => c.deviceId !== sender.deviceId && !partners.includes(c.deviceId));
+      const notYet = free.filter((c) => c.deviceId !== sender.deviceId && !partners.includes(c.deviceId)
+        && canPair(sender, c, cfg)); // подбор по стране + буст в дни 9–10
       // respect the candidate's own budget; relax only to guarantee everyone gets ≥1 chat
       const withRoom = notYet.filter((c) => store.partnersOf(c.deviceId).length < maxPartners(c, cfg, activeCount));
       const pool = withRoom.length ? withRoom : (partners.length === 0 ? notYet : []);
@@ -207,11 +252,13 @@ function pickPair(cfg) {
     }
 
     // 2) otherwise chat within an already-established relationship (if the partner is free)
-    const existingFree = partners.filter((id) => freeIds.has(id) && id !== sender.deviceId);
+    // существующий кросс-страна партнёр тоже общается только в дни 9–10
+    const existingFree = partners
+      .map((id) => activeCache.find((a) => a.deviceId === id))
+      .filter((p) => p && freeIds.has(p.deviceId) && p.deviceId !== sender.deviceId && canPair(sender, p, cfg));
     if (existingFree.length) {
-      const rid = existingFree[randInt(0, existingFree.length - 1)];
-      const found = activeCache.find((a) => a.deviceId === rid);
-      if (found) return [sender, found];
+      const found = existingFree[randInt(0, existingFree.length - 1)];
+      return [sender, found];
     }
     // else this sender has no available partner right now — try the next
   }
@@ -235,7 +282,9 @@ async function sendTurn(sender, receiver, cfg, replyId, forceText) {
   // WhatsApp dislikes images as the opening messages of a chat → first
   // conversation of a new chat is text-only (no images/voice/links).
   const pickCfg = forceText ? { ...cfg, imagesEnabled: false, voiceEnabled: false, linksEnabled: false } : cfg;
-  const item = content.pick(pickCfg, new Set(recentTexts));
+  // язык по паре: одна страна → её язык, смешанная пара → немецкий
+  const lang = groups.pairLang(groups.groupOf(cfg.groups, sender), groups.groupOf(cfg.groups, receiver));
+  const item = content.pick(pickCfg, new Set(recentTexts), lang);
   if (!item) return 'empty';
   remember(item.sourceText);
 
@@ -288,7 +337,7 @@ async function runConversation(a, b, cfg, isNew = false) {
   for (const dev of [a, b]) { try { await client.presence(dev.deviceId, 'available'); } catch { /* best */ } }
   let sender = a; let receiver = b; let lastId = null;
   for (let i = 0; i < turns && running; i++) {
-    if (store.sentToday(sender.deviceId) >= effectiveCap(sender, cfg)) break;
+    if (store.sentToday(sender.deviceId) >= capFor(sender, cfg)) break;
     try {
       const replyId = i > 0 && lastId && chance(0.35) ? lastId : undefined; // sometimes quote the previous message
       const r = await sendTurn(sender, receiver, cfg, replyId, isNew); // new chat → text-only
@@ -401,5 +450,10 @@ module.exports = {
   isBusy: (id) => busy.has(id),
   nextActionAt: (id) => nextAt.get(id) || 0,
   inActiveHoursNow: () => inActiveHours(config || store.loadConfig()),
-  dailyCapFor: (id) => { const a = store.get(id); return a ? effectiveCap(a, config || store.loadConfig()) : 0; },
+  dailyCapFor: (id) => { const a = store.get(id); return a ? capFor(a, config || store.loadConfig()) : 0; },
+  // экспорт чистых функций для тестов
+  __canPair: canPair,
+  __isReadyDay: isReadyDay,
+  __capFor: capFor,
+  __dayOf: dayOf,
 };
