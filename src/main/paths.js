@@ -54,20 +54,29 @@ function configFile() {
 }
 
 // User-editable content lives next to the app so it's easy to manage.
+// Text/links are per country-group (each group has its own language); images
+// and voice notes are shared across all groups.
 function contentDir() {
   return path.join(dataDir(), 'content-pack');
 }
-function messagesFile() {
-  return path.join(contentDir(), 'messages.txt');
+function messagesFile(groupId = 'ua') {
+  return path.join(contentDir(), groupId, 'messages.txt');
 }
-function linksFile() {
-  return path.join(contentDir(), 'links.txt');
+function linksFile(groupId = 'ua') {
+  return path.join(contentDir(), groupId, 'links.txt');
 }
+function sharedImagesDir() {
+  return path.join(contentDir(), 'shared', 'images');
+}
+function sharedVoiceDir() {
+  return path.join(contentDir(), 'shared', 'voice');
+}
+// Legacy aliases — images/voice are shared media, kept for existing call sites (e.g. ipc.js).
 function contentImagesDir() {
-  return path.join(contentDir(), 'images');
+  return sharedImagesDir();
 }
 function contentVoiceDir() {
-  return path.join(contentDir(), 'voice');
+  return sharedVoiceDir();
 }
 function statsFile() {
   return path.join(dataDir(), 'stats.json');
@@ -88,6 +97,8 @@ module.exports = {
   contentDir,
   messagesFile,
   linksFile,
+  sharedImagesDir,
+  sharedVoiceDir,
   contentImagesDir,
   contentVoiceDir,
   statsFile,
