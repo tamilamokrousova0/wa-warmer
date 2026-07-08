@@ -115,4 +115,40 @@ function rateLimiter({ maxAttempts = 5, windowMs = 900000, now = () => Date.now(
   return { check, fail, reset };
 }
 
-module.exports = { hashPassword, verifyPassword, rateLimiter };
+// --- Сессионная кука ---------------------------------------------------
+// Имя и значение подписанной httpOnly-куки сессии. Подпись/проверка делаются
+// плагином @fastify/cookie (req.unsignCookie / reply.setCookie{signed:true}),
+// секрет задаётся при регистрации плагина в server.js. Здесь — только имя,
+// «полезная нагрузка» и preHandler-страж.
+const SESSION_COOKIE = 'wa_panel';
+const SESSION_VALUE = 'authenticated';
+
+// Опции для reply.setCookie при успешном логине.
+function sessionCookieOptions() {
+  return { signed: true, httpOnly: true, sameSite: 'lax', path: '/' };
+}
+
+/**
+ * Fastify preHandler: пропускает запрос только при валидной подписанной куке.
+ * Иначе отвечает 401 и завершает запрос. Требует зарегистрированный
+ * @fastify/cookie (req.cookies + req.unsignCookie).
+ */
+async function requireSession(req, reply) {
+  const raw = req.cookies && req.cookies[SESSION_COOKIE];
+  if (!raw) return reply.code(401).send({ error: 'unauthorized' });
+  const un = req.unsignCookie(raw);
+  if (!un.valid || un.value !== SESSION_VALUE) {
+    return reply.code(401).send({ error: 'unauthorized' });
+  }
+  return undefined; // валидна — пропускаем дальше
+}
+
+module.exports = {
+  hashPassword,
+  verifyPassword,
+  rateLimiter,
+  requireSession,
+  sessionCookieOptions,
+  SESSION_COOKIE,
+  SESSION_VALUE,
+};

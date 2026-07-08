@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WA Warmer — вход</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body { align-items: center; justify-content: center; }
+    .login-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 28px 26px; width: 320px; max-width: 90vw;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    .login-card h1 { font-size: 17px; margin: 0 0 4px; }
+    .login-card p.hint { color: var(--muted); font-size: 12px; margin: 0 0 18px; }
+    .login-card label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .login-card input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 14px;
+    }
+    .login-card input:focus { outline: none; border-color: var(--primary); }
+    .login-card button {
+      width: 100%; background: var(--primary); color: #fff; border: none; border-radius: 8px;
+      padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .login-card button:disabled { opacity: 0.6; cursor: default; }
+    .login-card .err { color: var(--red); font-size: 12px; min-height: 16px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <form class="login-card" id="form">
+    <h1>WA Warmer</h1>
+    <p class="hint">Панель управления прогревом</p>
+    <label for="pw">Пароль</label>
+    <input id="pw" type="password" autocomplete="current-password" autofocus />
+    <button id="btn" type="submit">Войти</button>
+    <div class="err" id="err"></div>
+  </form>
+  <script>
+    const form = document.getElementById('form');
+    const err = document.getElementById('err');
+    const btn = document.getElementById('btn');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.textContent = '';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/login-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: document.getElementById('pw').value }),
+        });
+        if (res.ok) { window.location.href = '/'; return; }
+        if (res.status === 429) err.textContent = 'Слишком много попыток. Подождите.';
+        else err.textContent = 'Неверный пароль';
+      } catch (_) {
+        err.textContent = 'Ошибка соединения';
+      }
+      btn.disabled = false;
+    });
+  </script>
+</body>
+</html>

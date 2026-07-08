@@ -11,13 +11,21 @@
     "seed-messages": "node scripts/seed-messages.mjs",
     "icon": "node scripts/generate-icon.mjs",
     "prestart": "node scripts/ensure-assets.mjs",
-    "start": "electron .",
+    "start": "node src/server/server.js",
+    "preserver": "node scripts/ensure-assets.mjs",
+    "server": "node src/server/server.js",
+    "start:electron": "electron .",
     "prebuild": "node scripts/ensure-assets.mjs",
     "build": "electron-builder --publish never",
     "build:mac": "electron-builder --mac --x64 --arm64 --publish never",
     "build:win": "electron-builder --win --x64 --publish never"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.0",
+    "@fastify/multipart": "^10.1.0",
+    "@fastify/static": "^9.3.0",
+    "@fastify/websocket": "^11.3.0",
+    "fastify": "^5.10.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
