@@ -1,8 +1,14 @@
 'use strict';
-// Spawns and supervises the embedded GOWA (whatsapp rest) child process.
+// Spawns and supervises a POOL of embedded GOWA (whatsapp rest) child
+// processes — one per country group. Each engine gets its own free port,
+// basic-auth credentials, outbound proxy and SQLite session DB, so groups are
+// fully isolated (a bad proxy in one group can't take the others down). The
+// legacy single-process supervision (log piping, readiness wait, exit/restart
+// with backoff, graceful stop) is preserved per-group, keyed by group.id.
 const { spawn, spawnSync } = require('node:child_process');
 const net = require('node:net');
 const fs = require('node:fs');
+const path = require('node:path');
 const crypto = require('node:crypto');
 const { EventEmitter } = require('node:events');
 const paths = require('./paths');
@@ -12,11 +18,11 @@ const store = require('./accountStore');
 const log = require('./logbus');
 
 const state = new EventEmitter();
-let child = null;
+// groupId -> { child, port, user, pass, auth, ready, restarts, dbPath, group,
+//              restartTimer, stopping }
+const engines = new Map();
 let shuttingDown = false;
-let restarts = 0;
-let ready = false;
-let current = null; // { port, user, pass }
+let webhookStarted = false;
 
 function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -32,9 +38,10 @@ function getFreePort() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function setReady(v) {
-  ready = v;
-  state.emit('state', { ready, restarts, port: current?.port });
+function setReady(groupId, v) {
+  const e = engines.get(groupId);
+  if (e) e.ready = v;
+  state.emit('state', { groupId, ready: v, restarts: e ? e.restarts : 0, port: e ? e.port : undefined });
 }
 
 function prepareBinary(binPath) {
@@ -58,126 +65,154 @@ function prepareBinary(binPath) {
   }
 }
 
-async function waitReady(timeoutMs = 20000) {
+// The `ua` group reuses the historical DB path for session continuity (no
+// relogin after this refactor). Other groups get an isolated subdirectory.
+function dbPathFor(groupId) {
+  if (groupId === 'ua') return paths.gowaDbPath();
+  const dir = path.join(paths.dataDir(), 'gowa', groupId);
+  fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, 'whatsapp.db');
+}
+
+const keysDbPathFor = (dbPath) => dbPath.replace(/whatsapp\.db$/, 'keys.db');
+
+// Direct readiness probe — deliberately NOT via gowaClient (that module is
+// still single-baseUrl until the next task). Any HTTP response (even 4xx)
+// proves the REST server on this port is up.
+async function probeUp(port, auth) {
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/devices`, { headers: { Authorization: auth } });
+    return res.status >= 200 && res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function waitReady(port, auth, timeoutMs = 20000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try {
-      await client.listDevices();
-      return true;
-    } catch (e) {
-      // any HTTP response (even 4xx) proves the server is up.
-      if (e.status && e.status >= 200 && e.status < 500) return true;
-    }
+    if (await probeUp(port, auth)) return true;
     await sleep(400);
   }
   return false;
 }
 
-async function spawnOnce() {
+// The webhook receiver is global (one for the whole pool). Start it lazily the
+// first time any engine becomes ready.
+async function ensureWebhook() {
+  if (webhookStarted) return;
+  webhookStarted = true;
+  try {
+    await webhook.start();
+  } catch (e) {
+    webhookStarted = false;
+    log.warn('webhook', `start failed: ${e.message}`);
+  }
+}
+
+async function spawnGroup(group) {
   const binPath = paths.gowaBinaryPath();
   prepareBinary(binPath);
 
   const port = await getFreePort();
   const user = 'warmer';
   const pass = crypto.randomBytes(18).toString('base64url');
-  current = { port, user, pass };
-  client.configure({ port, user, pass });
+  const auth = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+  const dbPath = dbPathFor(group.id);
 
-  const dbPath = paths.gowaDbPath();
   const env = {
     ...process.env,
     APP_PORT: String(port),
     APP_BASIC_AUTH: `${user}:${pass}`,
     DB_URI: `file:${dbPath}`,
-    DB_KEYS_URI: `file:${paths.gowaKeysDbPath()}`,
+    DB_KEYS_URI: `file:${keysDbPathFor(dbPath)}`,
   };
 
   // Optional outbound proxy for the WhatsApp WebSocket (socks5/http/https).
-  // GOWA applies it process-wide via whatsmeow's SetProxyAddress, so it covers
-  // every account in this single engine process. Empty string = direct.
-  const proxy = String(store.loadConfig().proxy || '').trim();
+  // GOWA applies it process-wide via whatsmeow's SetProxyAddress — but each
+  // group now runs in its own process, so the proxy is scoped to that group.
   const args = ['rest', '--port', String(port), '-b', `${user}:${pass}`];
+  const proxy = String(group.proxy || '').trim();
   if (proxy) {
     env.WHATSAPP_PROXY = proxy;
     args.push('--whatsapp-proxy', proxy);
   }
 
-  log.gowa(`starting on 127.0.0.1:${port} (db: ${dbPath})${proxy ? ' via proxy' : ''}`);
-  child = spawn(binPath, args, {
-    env,
-    cwd: paths.dataDir(),
-    windowsHide: true,
-  });
+  log.gowa(`[${group.id}] starting on 127.0.0.1:${port} (db: ${dbPath})${proxy ? ' via proxy' : ''}`);
+  const child = spawn(binPath, args, { env, cwd: paths.dataDir(), windowsHide: true });
 
-  const pipe = (buf) => String(buf).split(/\r?\n/).filter(Boolean).forEach((l) => log.gowa(l));
+  // Preserve the restart counter across respawns of the same group.
+  const prev = engines.get(group.id);
+  const eng = {
+    child,
+    port,
+    user,
+    pass,
+    auth,
+    ready: false,
+    restarts: prev ? prev.restarts || 0 : 0,
+    dbPath,
+    group,
+    restartTimer: null,
+    stopping: false,
+  };
+  engines.set(group.id, eng);
+
+  const pipe = (buf) => String(buf).split(/\r?\n/).filter(Boolean).forEach((l) => log.gowa(`[${group.id}] ${l}`));
   child.stdout.on('data', pipe);
   child.stderr.on('data', pipe);
 
   child.on('exit', (code, signal) => {
-    setReady(false);
-    child = null;
-    if (shuttingDown) return;
-    log.error('gowa', `process exited (code=${code}, signal=${signal})`);
-    scheduleRestart();
+    const e = engines.get(group.id);
+    setReady(group.id, false);
+    if (e) e.child = null;
+    if (shuttingDown || (e && e.stopping)) return;
+    log.error('gowa', `[${group.id}] process exited (code=${code}, signal=${signal})`);
+    scheduleRestart(group.id);
   });
 
-  const ok = await waitReady();
-  if (!ok) throw new Error('GOWA did not become ready in time');
-  restarts = 0;
-  setReady(true);
-  log.gowa('ready');
-  try { await webhook.start(); } catch (e) { log.warn('webhook', `start failed: ${e.message}`); }
+  const ok = await waitReady(port, auth);
+  if (!ok) throw new Error(`GOWA [${group.id}] did not become ready in time`);
+  eng.restarts = 0;
+  setReady(group.id, true);
+  log.gowa(`[${group.id}] ready`);
+  await ensureWebhook();
 }
 
-// Point a logged-in device's webhook at our local receiver (best-effort).
-async function registerWebhook(deviceId) {
-  const url = webhook.getUrl();
-  if (!url) return;
-  try { await client.setWebhook(deviceId, url); } catch (e) { log.warn('webhook', `register ${deviceId}: ${e.message}`); }
-}
-
-let restartTimer = null;
-async function scheduleRestart() {
+function scheduleRestart(groupId) {
   if (shuttingDown) return;
-  restarts += 1;
-  if (restarts > 6) {
-    log.error('gowa', 'giving up after 6 restart attempts');
-    state.emit('state', { ready: false, restarts, fatal: true });
+  const eng = engines.get(groupId);
+  if (!eng || eng.stopping) return;
+  eng.restarts = (eng.restarts || 0) + 1;
+  if (eng.restarts > 6) {
+    log.error('gowa', `[${groupId}] giving up after 6 restart attempts`);
+    state.emit('state', { groupId, ready: false, restarts: eng.restarts, fatal: true });
     return;
   }
-  const backoff = Math.min(30000, 1000 * 2 ** (restarts - 1));
-  log.warn('gowa', `restarting in ${backoff / 1000}s (attempt ${restarts})`);
-  state.emit('state', { ready: false, restarts, restarting: true });
-  clearTimeout(restartTimer);
-  restartTimer = setTimeout(() => {
-    spawnOnce().catch((e) => {
-      log.error('gowa', `restart failed: ${e.message}`);
-      scheduleRestart();
+  const backoff = Math.min(30000, 1000 * 2 ** (eng.restarts - 1));
+  log.warn('gowa', `[${groupId}] restarting in ${backoff / 1000}s (attempt ${eng.restarts})`);
+  state.emit('state', { groupId, ready: false, restarts: eng.restarts, restarting: true });
+  clearTimeout(eng.restartTimer);
+  eng.restartTimer = setTimeout(() => {
+    const gr = store.loadConfig().groups.find((g) => g.id === groupId) || eng.group;
+    spawnGroup(gr).catch((e) => {
+      log.error('gowa', `[${groupId}] restart failed: ${e.message}`);
+      scheduleRestart(groupId);
     });
   }, backoff);
 }
 
-async function start() {
-  shuttingDown = false;
-  await spawnOnce();
-}
-
-// Restart the engine so a new config (e.g. proxy change) takes effect. The
-// proxy is a process-wide setting, so every account briefly reconnects.
-async function restart() {
-  await stop();
-  restarts = 0;
-  await start();
-}
-
-async function stop() {
-  shuttingDown = true;
-  clearTimeout(restartTimer);
-  if (!child) return;
-  const proc = child;
-  return new Promise((resolve) => {
-    const done = () => resolve();
-    proc.once('exit', done);
+async function stopGroup(groupId) {
+  const eng = engines.get(groupId);
+  if (!eng) return;
+  eng.stopping = true;
+  clearTimeout(eng.restartTimer);
+  eng.ready = false;
+  const proc = eng.child;
+  eng.child = null;
+  if (!proc) return;
+  await new Promise((resolve) => {
+    proc.once('exit', () => resolve());
     try {
       if (process.platform === 'win32') {
         spawnSync('taskkill', ['/pid', String(proc.pid), '/t', '/f']);
@@ -194,12 +229,61 @@ async function stop() {
   });
 }
 
+// Spawn every configured group. A group whose proxy is unreachable may fail
+// readiness — log it and carry on with the rest (never throw out of startAll).
+async function startAll() {
+  shuttingDown = false;
+  const cfg = store.loadConfig();
+  for (const gr of cfg.groups) {
+    // eslint-disable-next-line no-await-in-loop
+    await spawnGroup(gr).catch((e) => log.error('gowa', `[${gr.id}] start failed: ${e.message}`));
+  }
+}
+
+async function stopAll() {
+  shuttingDown = true;
+  await Promise.all([...engines.keys()].map((id) => stopGroup(id)));
+}
+
+// Restart a single group's engine (e.g. after its proxy changed) without
+// disturbing the others.
+async function restartGroup(groupId) {
+  await stopGroup(groupId);
+  const gr = store.loadConfig().groups.find((g) => g.id === groupId);
+  if (!gr) return;
+  const eng = engines.get(groupId);
+  if (eng) { eng.stopping = false; eng.restarts = 0; }
+  await spawnGroup(gr).catch((e) => log.error('gowa', `[${groupId}] restart failed: ${e.message}`));
+}
+
+// Point a logged-in device's webhook at our local receiver (best-effort). Still
+// routed through the single-baseUrl gowaClient for now; the next task makes the
+// client per-engine so this hits the right process.
+async function registerWebhook(deviceId) {
+  const url = webhook.getUrl();
+  if (!url) return;
+  try { await client.setWebhook(deviceId, url); } catch (e) { log.warn('webhook', `register ${deviceId}: ${e.message}`); }
+}
+
+const engine = (groupId) => {
+  const e = engines.get(groupId);
+  return e ? { port: e.port, user: e.user, pass: e.pass, ready: e.ready } : null;
+};
+
+// Test seam: inject a fake engine so router/other units can resolve it without
+// spawning a real GOWA process.
+function __setEngineForTest(groupId, e) {
+  engines.set(groupId, { ...e, child: null, group: { id: groupId } });
+}
+
 module.exports = {
-  start,
-  stop,
-  restart,
+  startAll,
+  stopAll,
+  restartGroup,
+  engine,
   state,
   registerWebhook,
-  isReady: () => ready,
-  info: () => ({ ready, restarts, port: current?.port }),
+  __setEngineForTest,
+  isReady: (groupId) => !!(engines.get(groupId) && engines.get(groupId).ready),
+  info: () => [...engines].map(([id, e]) => ({ id, ready: e.ready, port: e.port })),
 };
