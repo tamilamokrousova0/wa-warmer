@@ -164,15 +164,26 @@ async function spawnGroup(group) {
 
   child.on('exit', (code, signal) => {
     const e = engines.get(group.id);
+    // Only the CURRENT child drives supervision. A stale (replaced) child's
+    // late exit would otherwise null/reschedule the live engine and spawn a
+    // duplicate — ignore it.
+    if (!e || e.child !== child) return;
     setReady(group.id, false);
-    if (e) e.child = null;
-    if (shuttingDown || (e && e.stopping)) return;
+    e.child = null;
+    if (shuttingDown || e.stopping) return;
     log.error('gowa', `[${group.id}] process exited (code=${code}, signal=${signal})`);
     scheduleRestart(group.id);
   });
 
   const ok = await waitReady(port, auth);
-  if (!ok) throw new Error(`GOWA [${group.id}] did not become ready in time`);
+  if (!ok) {
+    // Detach this child from the engine before killing so the exit handler's
+    // `e.child !== child` guard short-circuits — this deliberate kill must not
+    // schedule a restart. Leaves no unsupervised lingering process.
+    eng.child = null;
+    try { child.kill('SIGTERM'); } catch { /* ignore */ }
+    throw new Error(`GOWA [${group.id}] did not become ready in time`);
+  }
   eng.restarts = 0;
   setReady(group.id, true);
   log.gowa(`[${group.id}] ready`);
