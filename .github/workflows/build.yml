@@ -1,32 +1,15 @@
-name: Build portable apps
+name: CI
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write # needed to publish a Release on tags
-
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            name: mac
-            gowa: npm run build-gowa -- --target mac-x64 --target mac-arm64  # both arches
-            build: npm run build:mac
-          - os: windows-latest
-            name: win
-            gowa: npm run build-gowa -- --current  # only win-x64 needed
-            build: npm run build:win
-
-    runs-on: ${{ matrix.os }}
+  test:
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -46,62 +29,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # prebuild hook does NOT run for build:mac / build:win, and the mac build
-      # needs BOTH arch binaries, so build all needed GOWA binaries explicitly.
-      # Built from source because proxy support isn't in a tagged release yet.
+      # Собирается из исходников (нужен Go) — поддержка исходящего прокси ещё не
+      # попала ни в один тегированный релиз GOWA. См. scripts/build-gowa.mjs.
       - name: Build GOWA engine
-        run: ${{ matrix.gowa }}
+        run: npm run build-gowa -- --current
 
-      - name: Generate app icon
-        run: npm run icon
-
-      - name: Build portable app
-        run: ${{ matrix.build }}
-        env:
-          # unsigned builds; never let electron-builder auto-publish here
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          EP_PRE_RELEASE: "false"
-
-      # Wrap each build in a "WA Warmer" folder + README and zip it, so the
-      # download extracts to a ready folder where data/ is created next to the app.
-      - name: Bundle into folder (mac)
-        if: matrix.name == 'mac'
-        run: |
-          mkdir -p out
-          for pair in "arm64:dist/mac-arm64" "x64:dist/mac"; do
-            arch="${pair%%:*}"; dir="${pair##*:}"
-            app="$dir/WA Warmer.app"
-            [ -d "$app" ] || continue
-            rm -rf stage; mkdir -p "stage/WA Warmer"
-            cp -R "$app" "stage/WA Warmer/"
-            cp build/dist-readme.txt "stage/WA Warmer/README.txt" || true
-            ( cd stage && ditto -c -k --sequesterRsrc --keepParent "WA Warmer" "../out/WA-Warmer-mac-$arch.zip" )
-          done
-          ls -la out
-
-      - name: Bundle into folder (win)
-        if: matrix.name == 'win'
-        shell: pwsh
-        run: |
-          $exe = Get-ChildItem dist -Filter *.exe | Select-Object -First 1
-          New-Item -ItemType Directory -Force -Path "stage/WA Warmer" | Out-Null
-          Copy-Item $exe.FullName -Destination "stage/WA Warmer/WA Warmer.exe"
-          Copy-Item "build/dist-readme.txt" -Destination "stage/WA Warmer/README.txt" -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path "out" | Out-Null
-          Compress-Archive -Path "stage/WA Warmer" -DestinationPath "out/WA-Warmer-win-x64.zip" -Force
-          Get-ChildItem out
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: wa-warmer-${{ matrix.name }}
-          path: "out/*.zip"
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Publish to Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: "out/*.zip"
-          fail_on_unmatched_files: true
+      - name: Run tests
+        run: node --test test/*.test.js

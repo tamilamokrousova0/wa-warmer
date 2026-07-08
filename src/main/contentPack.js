@@ -6,7 +6,6 @@
 // Supports spintax ({a|b|c}), emoji variation and invisible text uniqueness.
 const fs = require('node:fs');
 const path = require('node:path');
-const { shell } = require('electron');
 const paths = require('./paths');
 const { DEFAULT_GROUPS, contentGroupIdForLang } = require('./groups');
 
@@ -127,7 +126,16 @@ function counts() {
   const links = Object.values(c.groups).reduce((sum, g) => sum + g.links.length, 0);
   return { messages, links, images: c.images.length, voice: c.voice.length };
 }
-function openFolder() { ensure(); return shell.openPath(paths.contentDir()); }
+// Ленивый require('electron') — нужен только под Electron-оболочкой (её больше
+// нет в проде, но модуль остаётся Node-совместимым, если кто-то всё же запустит
+// его внутри Electron). Под чистым Node просто отдаём путь без открытия окна.
+function openFolder() {
+  ensure();
+  let electron;
+  try { electron = require('electron'); } catch { /* нет electron — headless-сервер */ }
+  if (electron && electron.shell) return electron.shell.openPath(paths.contentDir());
+  return Promise.resolve(paths.contentDir());
+}
 
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 

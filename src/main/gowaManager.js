@@ -46,7 +46,7 @@ function setReady(groupId, v) {
 
 function prepareBinary(binPath) {
   if (!fs.existsSync(binPath)) {
-    throw new Error(`GOWA binary not found at ${binPath}. Run "npm run fetch-gowa".`);
+    throw new Error(`GOWA binary not found at ${binPath}. Run "npm run build-gowa".`);
   }
   if (process.platform !== 'win32') {
     try {
