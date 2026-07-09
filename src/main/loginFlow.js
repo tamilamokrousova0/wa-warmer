@@ -42,10 +42,10 @@ function phoneFromJid(jid) {
   return String(jid).split('@')[0].split(':')[0];
 }
 
-async function newDevice(label, groupId) {
+async function newDevice(label, groupId, owner) {
   const created = await client.createDevice(groupId, label);
   const deviceId = (created.results || created).id;
-  store.upsert({ deviceId, label: label || 'Аккаунт', groupId, jid: '', phone: '', connected: false, addedAt: Date.now() });
+  store.upsert({ deviceId, label: label || 'Аккаунт', groupId, owner: String(owner || '').trim(), jid: '', phone: '', connected: false, addedAt: Date.now() });
   return deviceId;
 }
 
@@ -88,7 +88,7 @@ function findByLabel(label) {
   return store.all().find((a) => String(a.label || '').trim().toLowerCase() === l) || null;
 }
 
-async function startLogin(label, groupId) {
+async function startLogin(label, groupId, owner) {
   const existing = findByLabel(label);
   if (existing) {
     // same name as an offline account → re-login it (reuse device, its own group); online → real duplicate
@@ -97,7 +97,7 @@ async function startLogin(label, groupId) {
   }
   const gid = groupId || 'ua';
   let deviceId;
-  try { deviceId = await newDevice(label, gid); } catch (e) { log.error('login', e.message); return { error: e.message }; }
+  try { deviceId = await newDevice(label, gid, owner); } catch (e) { log.error('login', e.message); return { error: e.message }; }
   sessions.set(deviceId, { cancelled: false });
   log.info('login', `QR-логин для "${label}"`);
   (async () => {
@@ -137,7 +137,7 @@ async function codeLogin(deviceId, phone, isRelogin = false) {
   return { deviceId, code };
 }
 
-async function startLoginWithCode(label, phone, groupId) {
+async function startLoginWithCode(label, phone, groupId, owner) {
   const existing = findByLabel(label);
   if (existing) {
     if (existing.connected) return { error: `Название «${label}» уже занято` };
@@ -145,7 +145,7 @@ async function startLoginWithCode(label, phone, groupId) {
   }
   const gid = groupId || groups.detectGroupId(phone) || 'ua';
   let deviceId;
-  try { deviceId = await newDevice(label, gid); } catch (e) { return { error: e.message }; }
+  try { deviceId = await newDevice(label, gid, owner); } catch (e) { return { error: e.message }; }
   return codeLogin(deviceId, phone);
 }
 

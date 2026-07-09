@@ -42,6 +42,7 @@ function accountsView() {
       phone: a.phone,
       jid: a.jid,
       groupId: a.groupId || 'ua',   // страновая группа аккаунта (для бейджа в UI)
+      owner: a.owner || '',         // свободная метка «чей номер» (общая панель)
       ready: !!a.ready,             // «прогрет» — вышел из ротации (для бейджа в UI)
       connected: !!a.connected,
       sessionLost: !!a.sessionLost,
@@ -233,6 +234,13 @@ async function boot({ emit: sink } = {}) {
   try {
     await gowa.startAll();
     await reconnectAccounts();
+    // авто-возобновление прогрева после рестарта/ребута сервера: движки подняты и
+    // первый статус уже опрошен, поэтому у планировщика есть подключённые аккаунты.
+    // Стартуем только при сохранённом намерении (warmingEnabled), иначе оставляем стоп.
+    if (store.loadConfig().warmingEnabled) {
+      log.info('app', 'авто-возобновление прогрева');
+      scheduler.start(store.loadConfig());
+    }
     // периодическое обслуживание: авто-восстановление отвалившихся + свежий статус
     maintainTimer = setInterval(() => { maintainConnections().catch(() => {}); }, 30000);
   } catch (e) {

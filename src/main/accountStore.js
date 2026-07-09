@@ -238,6 +238,7 @@ const DEFAULT_CONFIG = {
              // Legacy field: migrateGroups() moves its value into group `ua`'s proxy.
   warmDays: 10, // total warm-up duration in days (ramp/partner growth window)
   crossCountryBoost: true, // allow aux-country groups to warm up UA numbers via cross-group chats
+  warmingEnabled: false, // намерение «прогрев включён»: планировщик авто-возобновляется при старте сервера
 };
 
 function loadConfig() {
@@ -272,6 +273,14 @@ function migrateGroups() {
 function setGroup(deviceId, groupId) {
   const a = get(deviceId);
   if (a) { a.groupId = groupId; saveAccounts(); }
+}
+
+// свободная метка «чей это номер» на общей панели (кто добавил аккаунт)
+function setOwner(deviceId, owner) {
+  const a = get(deviceId);
+  if (!a) return;
+  a.owner = String(owner || '').trim();
+  saveAccounts();
 }
 
 function setReady(deviceId, value) {
@@ -319,6 +328,7 @@ module.exports = {
   DEFAULT_CONFIG,
   migrateGroups,
   setGroup,
+  setOwner,
   setReady,
   setReloggedAt,
   accountsInGroup,
