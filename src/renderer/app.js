@@ -84,7 +84,7 @@ function accountRow(a) {
   li.innerHTML = `
     <span class="dot ${dotClass}"></span>
     <span class="meta">
-      <span class="top"><span class="label"></span><span class="group-badge"></span><span class="phone"></span></span>
+      <span class="top"><span class="label"></span><span class="group-badge"></span><span class="owner-tag"></span><span class="phone"></span></span>
       <span class="stats"></span>
       <span class="next small"></span>
     </span>
@@ -98,6 +98,16 @@ function accountRow(a) {
   const badge = li.querySelector('.group-badge');
   badge.textContent = groupLabel(gid);
   badge.classList.add('grp-' + gid);
+  // метка владельца (кто добавил номер) — показываем только если задана; клик редактирует
+  const ownerTag = li.querySelector('.owner-tag');
+  ownerTag.title = 'Владелец — клик, чтобы изменить';
+  if (a.owner) ownerTag.textContent = '👤 ' + a.owner; else ownerTag.style.display = 'none';
+  ownerTag.onclick = async () => {
+    const next = prompt('Владелец (кто добавляет номер):', a.owner || '');
+    if (next === null) return; // отмена
+    await api.setOwner(a.deviceId, next);
+    await refreshAccounts();
+  };
   li.querySelector('.edit').onclick = () => startRename(li, a);
   li.querySelector('.phone').textContent = a.paused ? 'на паузе'
     : (a.connected ? (a.phone ? '+' + a.phone : 'онлайн')
@@ -131,10 +141,17 @@ function openOverrideMenu(anchor, a) {
     `<span class="ovr-check">${on ? '✓' : ''}</span><span>${icon} ${text}</span></button>`;
   menu.innerHTML =
     item('⏭', 'Пропустить отлёжку', a.skipSettle) +
-    item('🌍', 'Форсировать буст', a.forceBoost);
+    item('🌍', 'Форсировать буст', a.forceBoost) +
+    `<button class="ovr-item" data-on="0"><span class="ovr-check"></span><span>👤 Владелец…</span></button>`;
   const btns = menu.querySelectorAll('.ovr-item');
   btns[0].onclick = async (e) => { e.stopPropagation(); closeOverrideMenu(); await api.setOverride(a.deviceId, { skipSettle: !a.skipSettle }); await refreshAccounts(); };
   btns[1].onclick = async (e) => { e.stopPropagation(); closeOverrideMenu(); await api.setOverride(a.deviceId, { forceBoost: !a.forceBoost }); await refreshAccounts(); };
+  btns[2].onclick = async (e) => {
+    e.stopPropagation(); closeOverrideMenu();
+    const next = prompt('Владелец (кто добавляет номер):', a.owner || '');
+    if (next === null) return;
+    await api.setOwner(a.deviceId, next); await refreshAccounts();
+  };
   document.body.appendChild(menu);
   const r = anchor.getBoundingClientRect();
   // разместить под кнопкой, прижав правый край к кнопке; не вылезать за окно
@@ -439,6 +456,7 @@ $('tabCode').onclick = () => setMode('code');
 
 $('addBtn').onclick = () => {
   $('qrLabel').value = '';
+  $('qrOwner').value = '';
   $('qrPhone').value = '';
   if ($('qrGroup').options.length) $('qrGroup').value = 'ua';
   $('qrStage').classList.add('hidden');
@@ -474,10 +492,11 @@ $('qrPhone').addEventListener('input', () => {
 $('qrStart').onclick = async () => {
   const label = $('qrLabel').value.trim() || 'Аккаунт';
   const groupId = $('qrGroup').value || 'ua';
+  const owner = $('qrOwner').value.trim();
   $('qrStart').disabled = true;
   $('qrHint').style.color = '';
   if (loginMode === 'qr') {
-    const r = await api.startLogin(label, groupId);
+    const r = await api.startLogin(label, groupId, owner);
     if (r.error) { showAddError(r.error); return; }
     $('codeStage').classList.add('hidden');
     $('qrHint').textContent = 'WhatsApp → Настройки → Связанные устройства → Привязать устройство. Сканируйте сразу — код обновляется каждые 20с.';
@@ -487,7 +506,7 @@ $('qrStart').onclick = async () => {
   } else {
     const phone = $('qrPhone').value.replace(/[^0-9]/g, '');
     if (!phone) { $('qrStart').disabled = false; return; }
-    const r = await api.startLoginCode(label, phone, groupId);
+    const r = await api.startLoginCode(label, phone, groupId, owner);
     if (r.error) { showAddError(r.error); return; }
     $('qrStage').classList.add('hidden');
     $('codeStage').classList.remove('hidden');

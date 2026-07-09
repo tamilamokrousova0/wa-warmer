@@ -60,15 +60,15 @@ function register(app, ctx) {
   app.get('/api/accounts', requireSession, async () => accountsView());
 
   app.post('/api/login/start', requireSession, async (req) => {
-    const { label, groupId } = req.body || {};
-    const r = await loginFlow.startLogin(label, groupId);
+    const { label, groupId, owner } = req.body || {};
+    const r = await loginFlow.startLogin(label, groupId, owner);
     pushAccounts();
     return r;
   });
 
   app.post('/api/login/start-code', requireSession, async (req) => {
-    const { label, phone, groupId } = req.body || {};
-    const r = await loginFlow.startLoginWithCode(label, phone, groupId);
+    const { label, phone, groupId, owner } = req.body || {};
+    const r = await loginFlow.startLoginWithCode(label, phone, groupId, owner);
     pushAccounts();
     return r;
   });
@@ -109,6 +109,16 @@ function register(app, ctx) {
   app.post('/api/account/set-paused', requireSession, async (req) => {
     const { deviceId, paused } = req.body || {};
     store.setPaused(deviceId, paused);
+    pushAccounts();
+    return { ok: true };
+  });
+
+  app.post('/api/account/set-owner', requireSession, async (req, reply) => {
+    const { deviceId, owner } = req.body || {};
+    if (!deviceId || !store.get(deviceId)) {
+      return reply.code(400).send({ error: 'unknown deviceId' });
+    }
+    store.setOwner(deviceId, owner);
     pushAccounts();
     return { ok: true };
   });
@@ -182,9 +192,16 @@ function register(app, ctx) {
   // ---- прогрев ------------------------------------------------------------
   app.post('/api/warming/start', requireSession, async (req) => {
     const config = req.body && req.body.config;
-    return scheduler.start(config);
+    const r = scheduler.start(config);
+    // фиксируем намерение «прогрев включён» → авто-возобновление при рестарте сервера
+    store.saveConfig({ ...store.loadConfig(), warmingEnabled: true });
+    return r;
   });
-  app.post('/api/warming/stop', requireSession, async () => scheduler.stop());
+  app.post('/api/warming/stop', requireSession, async () => {
+    const r = scheduler.stop();
+    store.saveConfig({ ...store.loadConfig(), warmingEnabled: false });
+    return r;
+  });
 
   // ---- статистика ---------------------------------------------------------
   app.get('/api/stats/full', requireSession, async () => {

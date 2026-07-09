@@ -109,14 +109,15 @@
   window.api = {
     // invoke (renderer -> REST)
     listAccounts: () => getJson('/api/accounts'),
-    startLogin: (label, groupId) => postJson('/api/login/start', { label, groupId }),
-    startLoginCode: (label, phone, groupId) => postJson('/api/login/start-code', { label, phone, groupId }),
+    startLogin: (label, groupId, owner) => postJson('/api/login/start', { label, groupId, owner }),
+    startLoginCode: (label, phone, groupId, owner) => postJson('/api/login/start-code', { label, phone, groupId, owner }),
     bulkLoginCode: (phones, prefix) => postJson('/api/login/bulk-code', { phones, prefix }),
     refreshQr: (deviceId) => postJson('/api/login/refresh-qr', { deviceId }),
     cancelLogin: (deviceId) => postJson('/api/login/cancel', { deviceId }),
     renameAccount: (deviceId, label) => postJson('/api/account/rename', { deviceId, label }),
     setAccountPaused: (deviceId, paused) => postJson('/api/account/set-paused', { deviceId, paused }),
     setAccountGroup: (deviceId, groupId) => postJson('/api/account/set-group', { deviceId, groupId }),
+    setOwner: (deviceId, owner) => postJson('/api/account/set-owner', { deviceId, owner }),
     setOverride: (deviceId, patch) => postJson('/api/account/override', { deviceId, ...patch }),
     reconnectAccount: (deviceId) => postJson('/api/account/reconnect', { deviceId }),
     logoutAccount: (deviceId) => postJson('/api/account/logout', { deviceId }),

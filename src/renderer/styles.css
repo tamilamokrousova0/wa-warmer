@@ -132,6 +132,10 @@ body {
 .grp-uk { border-color: #3aa56e; color: #7fe2b4; }
 .acct .group-badge { align-self: center; }
 
+/* метка владельца номера на карточке аккаунта (кто добавил) — приглушённая, кликабельная */
+.owner-tag { align-self: center; font-size: 10px; line-height: 1; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.owner-tag:hover { color: var(--text); }
+
 .group-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 7px; font-size: 12px; }
 .disclaimer { color: var(--amber); margin: 8px 0 0; }
 .muted { color: var(--muted); }

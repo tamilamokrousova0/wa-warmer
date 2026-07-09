@@ -30,3 +30,22 @@ test('setSessionLost(true) stamps loggedOutAt; reconnect clears it', () => {
   store.setConnected('d1', true);
   assert.strictEqual(store.get('d1').loggedOutAt, 0, 'loggedOutAt cleared on reconnect');
 });
+
+// Задача 1: намерение «прогрев включён» персистится → boot() авто-возобновляет прогрев.
+// (сам boot спавнит GOWA и здесь не тестируется — проверяем только персист флага)
+test('warmingEnabled: default false, persists after saveConfig(true)', () => {
+  const { store } = freshStore();
+  assert.strictEqual(store.loadConfig().warmingEnabled, false, 'по умолчанию false');
+  store.saveConfig({ warmingEnabled: true });
+  assert.strictEqual(store.loadConfig().warmingEnabled, true, 'сохранилось true');
+});
+
+// Задача 2: метка владельца персистится и видна через get().
+test('setOwner persists trimmed owner; no-op for missing account', () => {
+  const { store } = freshStore();
+  store.upsert({ deviceId: 'd1', label: 'A', addedAt: 1 });
+  store.setOwner('d1', '  Ваня  ');
+  assert.strictEqual(store.get('d1').owner, 'Ваня', 'owner тримится и сохраняется');
+  store.setOwner('missing', 'X'); // не должно бросать
+  assert.strictEqual(store.get('missing'), null);
+});
