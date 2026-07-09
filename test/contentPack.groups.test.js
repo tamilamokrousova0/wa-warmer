@@ -58,6 +58,19 @@ test('ensure() populates shared/images from content-seed when the runtime dir is
   assert.strictEqual(seeded.length, seedImgs.length, 'all seed images should be copied into shared/images');
 });
 
+test('ensure() populates shared/voice from content-seed when the runtime dir is empty', () => {
+  const { content, paths } = freshContentPack();
+  const seedDir = path.join(__dirname, '..', 'content-seed', 'shared', 'voice');
+  const OGG = /\.ogg$/i;
+  const seedVoice = fs.readdirSync(seedDir).filter((f) => OGG.test(f));
+  assert.ok(seedVoice.length > 0, 'seed dir must ship real voice clips for this test');
+
+  content.ensure();
+
+  const seeded = fs.readdirSync(paths.sharedVoiceDir()).filter((f) => OGG.test(f));
+  assert.strictEqual(seeded.length, seedVoice.length, 'all seed voice clips should be copied into shared/voice');
+});
+
 test('ensure() does not overwrite existing shared/images (only seeds when empty)', () => {
   const { content, paths } = freshContentPack();
   const dir = paths.sharedImagesDir();

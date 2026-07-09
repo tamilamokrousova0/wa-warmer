@@ -75,25 +75,23 @@ function seedMessagesIfEmpty(groupId) {
 }
 
 // в общей папке уже есть хотя бы одно изображение?
-function hasImages(dir) {
+function hasMedia(dir, extSet) {
   try {
-    return fs.readdirSync(dir).some((f) => IMAGE_EXT.has(path.extname(f).toLowerCase()));
+    return fs.readdirSync(dir).some((f) => extSet.has(path.extname(f).toLowerCase()));
   } catch { return false; }
 }
 
-// заполняем shared/images из репозиторного content-seed/shared/images, только если
-// у пользователя там ещё нет картинок; существующие файлы никогда не трогаем.
-function seedImagesIfEmpty() {
-  const dest = paths.sharedImagesDir();
-  if (hasImages(dest)) return;
-  const seedDir = path.join(__dirname, '..', '..', 'content-seed', 'shared', 'images');
+// заполняем shared/<images|voice> из репозиторного content-seed/shared/<...>,
+// только если у пользователя там ещё нет файлов нужного типа; существующие
+// файлы никогда не трогаем.
+function seedMediaIfEmpty(dest, seedDir, extSet) {
+  if (hasMedia(dest, extSet)) return;
   let files = [];
   try { files = fs.readdirSync(seedDir); } catch { return; }
   for (const name of files) {
-    if (!IMAGE_EXT.has(path.extname(name).toLowerCase())) continue;
-    const src = path.join(seedDir, name);
+    if (!extSet.has(path.extname(name).toLowerCase())) continue;
     const out = path.join(dest, name);
-    try { if (!fs.existsSync(out)) fs.copyFileSync(src, out); } catch { /* best-effort */ }
+    try { if (!fs.existsSync(out)) fs.copyFileSync(path.join(seedDir, name), out); } catch { /* best-effort */ }
   }
 }
 
@@ -108,7 +106,9 @@ function ensure() {
   for (const d of [paths.sharedImagesDir(), paths.sharedVoiceDir()]) {
     fs.mkdirSync(d, { recursive: true });
   }
-  seedImagesIfEmpty();
+  const seedRoot = path.join(__dirname, '..', '..', 'content-seed', 'shared');
+  seedMediaIfEmpty(paths.sharedImagesDir(), path.join(seedRoot, 'images'), IMAGE_EXT);
+  seedMediaIfEmpty(paths.sharedVoiceDir(), path.join(seedRoot, 'voice'), VOICE_EXT);
 }
 
 function readLines(file) {
