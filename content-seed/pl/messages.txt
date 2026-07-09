@@ -11,23 +11,13 @@ Cześć, jadłeś już coś?
 Cześć, masz ochotę na kawę?
 Cześć, jak w pracy?
 Cześć, co porabiasz?
-Cześć, dawno cię nie słyszałem, jak się masz?
 Cześć, jesteś pod telefonem?
 Cześć, jeszcze nie śpisz?
-Cześć, jaki masz dziś humor?
 Cześć, co ciekawego?
 Cześć, jak weekend?
 Cześć, jesteś w domu?
 Cześć, dużo dziś pracy?
-Cześć, jak zdrowie?
-Cześć, co u rodziny?
 Cześć, jakie plany na jutro?
-Cześć, już wstałeś?
-Cześć, jak pogoda u ciebie?
-Cześć, jak praca idzie?
-Cześć, co planujesz?
-Cześć, wszystko spokojnie?
-Cześć, kopę lat, jak życie?
 Hej, jak się masz?
 Hej, co słychać?
 Hej, jak leci?
@@ -41,23 +31,13 @@ Hej, jadłeś już coś?
 Hej, masz ochotę na kawę?
 Hej, jak w pracy?
 Hej, co porabiasz?
-Hej, dawno cię nie słyszałem, jak się masz?
 Hej, jesteś pod telefonem?
 Hej, jeszcze nie śpisz?
-Hej, jaki masz dziś humor?
 Hej, co ciekawego?
 Hej, jak weekend?
 Hej, jesteś w domu?
 Hej, dużo dziś pracy?
-Hej, jak zdrowie?
-Hej, co u rodziny?
 Hej, jakie plany na jutro?
-Hej, już wstałeś?
-Hej, jak pogoda u ciebie?
-Hej, jak praca idzie?
-Hej, co planujesz?
-Hej, wszystko spokojnie?
-Hej, kopę lat, jak życie?
 Dzień dobry, jak się masz?
 Dzień dobry, co słychać?
 Dzień dobry, jak leci?
@@ -71,23 +51,13 @@ Dzień dobry, jadłeś już coś?
 Dzień dobry, masz ochotę na kawę?
 Dzień dobry, jak w pracy?
 Dzień dobry, co porabiasz?
-Dzień dobry, dawno cię nie słyszałem, jak się masz?
 Dzień dobry, jesteś pod telefonem?
 Dzień dobry, jeszcze nie śpisz?
-Dzień dobry, jaki masz dziś humor?
 Dzień dobry, co ciekawego?
 Dzień dobry, jak weekend?
 Dzień dobry, jesteś w domu?
 Dzień dobry, dużo dziś pracy?
-Dzień dobry, jak zdrowie?
-Dzień dobry, co u rodziny?
 Dzień dobry, jakie plany na jutro?
-Dzień dobry, już wstałeś?
-Dzień dobry, jak pogoda u ciebie?
-Dzień dobry, jak praca idzie?
-Dzień dobry, co planujesz?
-Dzień dobry, wszystko spokojnie?
-Dzień dobry, kopę lat, jak życie?
 Dobry wieczór, jak się masz?
 Dobry wieczór, co słychać?
 Dobry wieczór, jak leci?
@@ -101,23 +71,13 @@ Dobry wieczór, jadłeś już coś?
 Dobry wieczór, masz ochotę na kawę?
 Dobry wieczór, jak w pracy?
 Dobry wieczór, co porabiasz?
-Dobry wieczór, dawno cię nie słyszałem, jak się masz?
 Dobry wieczór, jesteś pod telefonem?
 Dobry wieczór, jeszcze nie śpisz?
-Dobry wieczór, jaki masz dziś humor?
 Dobry wieczór, co ciekawego?
 Dobry wieczór, jak weekend?
 Dobry wieczór, jesteś w domu?
 Dobry wieczór, dużo dziś pracy?
-Dobry wieczór, jak zdrowie?
-Dobry wieczór, co u rodziny?
 Dobry wieczór, jakie plany na jutro?
-Dobry wieczór, już wstałeś?
-Dobry wieczór, jak pogoda u ciebie?
-Dobry wieczór, jak praca idzie?
-Dobry wieczór, co planujesz?
-Dobry wieczór, wszystko spokojnie?
-Dobry wieczór, kopę lat, jak życie?
 Siema, jak się masz?
 Siema, co słychać?
 Siema, jak leci?
@@ -131,23 +91,13 @@ Siema, jadłeś już coś?
 Siema, masz ochotę na kawę?
 Siema, jak w pracy?
 Siema, co porabiasz?
-Siema, dawno cię nie słyszałem, jak się masz?
 Siema, jesteś pod telefonem?
 Siema, jeszcze nie śpisz?
-Siema, jaki masz dziś humor?
 Siema, co ciekawego?
 Siema, jak weekend?
 Siema, jesteś w domu?
 Siema, dużo dziś pracy?
-Siema, jak zdrowie?
-Siema, co u rodziny?
 Siema, jakie plany na jutro?
-Siema, już wstałeś?
-Siema, jak pogoda u ciebie?
-Siema, jak praca idzie?
-Siema, co planujesz?
-Siema, wszystko spokojnie?
-Siema, kopę lat, jak życie?
 Witaj, jak się masz?
 Witaj, co słychać?
 Witaj, jak leci?
@@ -161,23 +111,13 @@ Witaj, jadłeś już coś?
 Witaj, masz ochotę na kawę?
 Witaj, jak w pracy?
 Witaj, co porabiasz?
-Witaj, dawno cię nie słyszałem, jak się masz?
 Witaj, jesteś pod telefonem?
 Witaj, jeszcze nie śpisz?
-Witaj, jaki masz dziś humor?
 Witaj, co ciekawego?
 Witaj, jak weekend?
 Witaj, jesteś w domu?
 Witaj, dużo dziś pracy?
-Witaj, jak zdrowie?
-Witaj, co u rodziny?
 Witaj, jakie plany na jutro?
-Witaj, już wstałeś?
-Witaj, jak pogoda u ciebie?
-Witaj, jak praca idzie?
-Witaj, co planujesz?
-Witaj, wszystko spokojnie?
-Witaj, kopę lat, jak życie?
 Hejka, jak się masz?
 Hejka, co słychać?
 Hejka, jak leci?
@@ -191,23 +131,13 @@ Hejka, jadłeś już coś?
 Hejka, masz ochotę na kawę?
 Hejka, jak w pracy?
 Hejka, co porabiasz?
-Hejka, dawno cię nie słyszałem, jak się masz?
 Hejka, jesteś pod telefonem?
 Hejka, jeszcze nie śpisz?
-Hejka, jaki masz dziś humor?
 Hejka, co ciekawego?
 Hejka, jak weekend?
 Hejka, jesteś w domu?
 Hejka, dużo dziś pracy?
-Hejka, jak zdrowie?
-Hejka, co u rodziny?
 Hejka, jakie plany na jutro?
-Hejka, już wstałeś?
-Hejka, jak pogoda u ciebie?
-Hejka, jak praca idzie?
-Hejka, co planujesz?
-Hejka, wszystko spokojnie?
-Hejka, kopę lat, jak życie?
 No cześć, jak się masz?
 No cześć, co słychać?
 No cześć, jak leci?
@@ -221,23 +151,13 @@ No cześć, jadłeś już coś?
 No cześć, masz ochotę na kawę?
 No cześć, jak w pracy?
 No cześć, co porabiasz?
-No cześć, dawno cię nie słyszałem, jak się masz?
 No cześć, jesteś pod telefonem?
 No cześć, jeszcze nie śpisz?
-No cześć, jaki masz dziś humor?
 No cześć, co ciekawego?
 No cześć, jak weekend?
 No cześć, jesteś w domu?
 No cześć, dużo dziś pracy?
-No cześć, jak zdrowie?
-No cześć, co u rodziny?
 No cześć, jakie plany na jutro?
-No cześć, już wstałeś?
-No cześć, jak pogoda u ciebie?
-No cześć, jak praca idzie?
-No cześć, co planujesz?
-No cześć, wszystko spokojnie?
-No cześć, kopę lat, jak życie?
 Joł, jak się masz?
 Joł, co słychać?
 Joł, jak leci?
@@ -251,23 +171,13 @@ Joł, jadłeś już coś?
 Joł, masz ochotę na kawę?
 Joł, jak w pracy?
 Joł, co porabiasz?
-Joł, dawno cię nie słyszałem, jak się masz?
 Joł, jesteś pod telefonem?
 Joł, jeszcze nie śpisz?
-Joł, jaki masz dziś humor?
 Joł, co ciekawego?
 Joł, jak weekend?
 Joł, jesteś w domu?
 Joł, dużo dziś pracy?
-Joł, jak zdrowie?
-Joł, co u rodziny?
 Joł, jakie plany na jutro?
-Joł, już wstałeś?
-Joł, jak pogoda u ciebie?
-Joł, jak praca idzie?
-Joł, co planujesz?
-Joł, wszystko spokojnie?
-Joł, kopę lat, jak życie?
 Elo, jak się masz?
 Elo, co słychać?
 Elo, jak leci?
@@ -281,23 +191,13 @@ Elo, jadłeś już coś?
 Elo, masz ochotę na kawę?
 Elo, jak w pracy?
 Elo, co porabiasz?
-Elo, dawno cię nie słyszałem, jak się masz?
 Elo, jesteś pod telefonem?
 Elo, jeszcze nie śpisz?
-Elo, jaki masz dziś humor?
 Elo, co ciekawego?
 Elo, jak weekend?
 Elo, jesteś w domu?
 Elo, dużo dziś pracy?
-Elo, jak zdrowie?
-Elo, co u rodziny?
 Elo, jakie plany na jutro?
-Elo, już wstałeś?
-Elo, jak pogoda u ciebie?
-Elo, jak praca idzie?
-Elo, co planujesz?
-Elo, wszystko spokojnie?
-Elo, kopę lat, jak życie?
 Cześć cześć, jak się masz?
 Cześć cześć, co słychać?
 Cześć cześć, jak leci?
@@ -311,23 +211,13 @@ Cześć cześć, jadłeś już coś?
 Cześć cześć, masz ochotę na kawę?
 Cześć cześć, jak w pracy?
 Cześć cześć, co porabiasz?
-Cześć cześć, dawno cię nie słyszałem, jak się masz?
 Cześć cześć, jesteś pod telefonem?
 Cześć cześć, jeszcze nie śpisz?
-Cześć cześć, jaki masz dziś humor?
 Cześć cześć, co ciekawego?
 Cześć cześć, jak weekend?
 Cześć cześć, jesteś w domu?
 Cześć cześć, dużo dziś pracy?
-Cześć cześć, jak zdrowie?
-Cześć cześć, co u rodziny?
 Cześć cześć, jakie plany na jutro?
-Cześć cześć, już wstałeś?
-Cześć cześć, jak pogoda u ciebie?
-Cześć cześć, jak praca idzie?
-Cześć cześć, co planujesz?
-Cześć cześć, wszystko spokojnie?
-Cześć cześć, kopę lat, jak życie?
 Hej hej, jak się masz?
 Hej hej, co słychać?
 Hej hej, jak leci?
@@ -341,23 +231,13 @@ Hej hej, jadłeś już coś?
 Hej hej, masz ochotę na kawę?
 Hej hej, jak w pracy?
 Hej hej, co porabiasz?
-Hej hej, dawno cię nie słyszałem, jak się masz?
 Hej hej, jesteś pod telefonem?
 Hej hej, jeszcze nie śpisz?
-Hej hej, jaki masz dziś humor?
 Hej hej, co ciekawego?
 Hej hej, jak weekend?
 Hej hej, jesteś w domu?
 Hej hej, dużo dziś pracy?
-Hej hej, jak zdrowie?
-Hej hej, co u rodziny?
 Hej hej, jakie plany na jutro?
-Hej hej, już wstałeś?
-Hej hej, jak pogoda u ciebie?
-Hej hej, jak praca idzie?
-Hej hej, co planujesz?
-Hej hej, wszystko spokojnie?
-Hej hej, kopę lat, jak życie?
 Cześć!
 Dzień dobry!
 Dobry wieczór!
@@ -398,6 +278,18 @@ Odpoczywam w domu.
 Dziś dużo do zrobienia.
 Słońce świeci, super.
 Lubię takie dni.
+Dzień był udany.
+Załatwiłem wszystko.
+Dziś było produktywnie.
+Po prostu odpoczywam.
+Oglądam serial.
+Słucham muzyki.
+Czytam książkę.
+Robię teraz kolację.
+Idę się przejść.
+Zostaję dziś w domu.
+Idę dziś wcześniej spać.
+To był długi dzień.
 Masz ochotę na kawę?
 Masz ochotę na herbatę?
 Masz ochotę na spacer?
@@ -498,3 +390,111 @@ Już w domu?
 Już w pracy?
 Już wolny?
 Już zajęty?
+Już obudzony?
+Już po pracy?
+Już wyspany?
+Już gotowy?
+Jaki ładny dzisiaj dzień!
+Jaki zimny dzisiaj dzień!
+Jaki długi dzisiaj dzień!
+Jaki ciepły dzisiaj dzień!
+Jaki słoneczny dzisiaj dzień!
+Jaki spokojny dzisiaj dzień!
+Jaki męczący dzisiaj dzień!
+Jaki przyjemny dzisiaj dzień!
+Jaki szary dzisiaj dzień!
+Jaki piękny dzisiaj dzień!
+Ale ładny dzisiaj dzień!
+Ale zimny dzisiaj dzień!
+Ale długi dzisiaj dzień!
+Ale ciepły dzisiaj dzień!
+Ale słoneczny dzisiaj dzień!
+Ale spokojny dzisiaj dzień!
+Ale męczący dzisiaj dzień!
+Ale przyjemny dzisiaj dzień!
+Ale szary dzisiaj dzień!
+Ale piękny dzisiaj dzień!
+Dzisiaj jestem trochę zmęczony.
+Dzisiaj mam dobry humor.
+Dzisiaj dużo do zrobienia.
+Dzisiaj nic szczególnego.
+Dzisiaj wszystko spokojnie.
+Dzisiaj był długi dzień.
+Dzisiaj jest ładny dzień.
+Dzisiaj chcę odpocząć.
+Dzisiaj pracuję do wieczora.
+Dzisiaj mam wolne.
+Jak praca?
+Jak nastrój?
+Jak rodzina?
+Jak pogoda u was?
+Jak minął dzień?
+Jak weekend?
+Jak nowy projekt?
+Jak zdrowie?
+A jak praca?
+A jak nastrój?
+A jak rodzina?
+A jak pogoda u was?
+A jak minął dzień?
+A jak weekend?
+A jak nowy projekt?
+A jak zdrowie?
+Jestem teraz w domu.
+Jestem teraz w drodze.
+Jestem teraz w biurze.
+Jestem teraz zajęty.
+Jestem teraz wolny.
+Jestem teraz w mieście.
+Jestem teraz na mieście.
+Jestem jeszcze w pracy.
+Jestem jeszcze w domu.
+Jestem jeszcze w drodze.
+Jestem jeszcze w biurze.
+Jestem jeszcze zajęty.
+Jestem jeszcze wolny.
+Jestem jeszcze w mieście.
+Jestem jeszcze na mieście.
+Jestem już w pracy.
+Jestem już w domu.
+Jestem już w drodze.
+Jestem już w biurze.
+Jestem już zajęty.
+Jestem już wolny.
+Jestem już w mieście.
+Jestem już na mieście.
+Masz ochotę się spotkać jutro?
+Masz ochotę później zadzwonić?
+Masz ochotę zjeść coś razem?
+Masz ochotę pójść na spacer?
+Masz ochotę zrobić przerwę?
+Masz ochotę spotkać się w weekend?
+Chcesz się spotkać jutro?
+Chcesz później zadzwonić?
+Chcesz zjeść coś razem?
+Chcesz pójść na spacer?
+Chcesz zrobić przerwę?
+Chcesz spotkać się w weekend?
+Na dworze jest dziś ciepło.
+Na dworze jest dziś zimno.
+Na dworze jest dziś słonecznie.
+Na dworze jest dziś pochmurno.
+Na dworze jest dziś wietrznie.
+Na dworze jest dziś mglisto.
+Na dworze jest dziś deszczowo.
+Na dworze jest dziś pięknie.
+U nas jest teraz ciepło.
+U nas jest teraz zimno.
+U nas jest teraz słonecznie.
+U nas jest teraz pochmurno.
+U nas jest teraz wietrznie.
+U nas jest teraz mglisto.
+U nas jest teraz deszczowo.
+U nas jest teraz pięknie.
+Dziękuję za pomoc!
+Dziękuję za radę!
+Dziękuję za wsparcie!
+Dziękuję za rozmowę!
+Dziękuję za zaproszenie!
+Dziękuję za twój czas!
+Dziękuję za wiadomość!

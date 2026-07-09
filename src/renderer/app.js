@@ -144,6 +144,7 @@ function renderAccounts(list) {
   $('sumTraffic').textContent = `↑${sent} ↓${received}`;
   $('acctCount').textContent = list.length ? `(${list.length})` : '';
   applyAccountFilter();
+  updateGroupPairNotes(); // счётчик «≥2 номера» по группам — вживую при каждом обновлении списка
   $('startBtn').disabled = warmingRunning || !gowaReady || active < 2;
   $('stopBtn').disabled = !warmingRunning;
 }
@@ -160,6 +161,7 @@ async function loadConfig() {
   $('minDelayMin').value = c.minDelayMin;
   $('maxDelayMin').value = c.maxDelayMin;
   $('settleHours').value = c.settleHours;
+  $('reloginSettleHours').value = c.reloginSettleHours;
   $('dailyCap').value = c.dailyCap;
   $('maxConcurrent').value = c.maxConcurrent;
   $('daysPerPartner').value = c.daysPerPartner;
@@ -177,6 +179,7 @@ function readConfig() {
     minDelayMin: Math.max(1, +$('minDelayMin').value || 2),
     maxDelayMin: Math.max(1, +$('maxDelayMin').value || 7),
     settleHours: Math.max(0, +$('settleHours').value || 0),
+    reloginSettleHours: Math.max(0, +$('reloginSettleHours').value || 0),
     dailyCap: Math.max(1, +$('dailyCap').value || 30),
     maxConcurrent: Math.min(24, Math.max(1, +$('maxConcurrent').value || 4)),
     daysPerPartner: Math.max(1, +$('daysPerPartner').value || 2),
@@ -194,7 +197,7 @@ async function saveConfig() {
   await api.setConfig(readConfig());
 }
 ['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd',
-  'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
+  'daysPerPartner', 'settleHours', 'reloginSettleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- groups (per-group proxy; saving restarts changed engines) ----------
@@ -233,10 +236,8 @@ function groupRow(g) {
       <span class="note-geo amber small"></span>
     </div>`;
   div.querySelector('.group-proxy').value = g.proxy || '';
-  // предупреждение: для прогрева внутри страны нужна пара номеров
-  if ((g.accountCount ?? 0) < 2) {
-    div.querySelector('.note-pair').textContent = '⚠ нужно ≥2 номера для прогрева внутри страны';
-  }
+  // предупреждение «нужно ≥2 номера» рисуется отдельно (updateGroupPairNotes),
+  // чтобы пересчитываться вживую при изменении списка аккаунтов
   const resEl = div.querySelector('.group-result');
   const geoEl = div.querySelector('.note-geo');
   div.querySelector('.group-test').onclick = async (e) => {
@@ -280,12 +281,29 @@ function populateGroupSelect() {
   if (cur) sel.value = cur;
 }
 
+// «нужно ≥2 номера» считается вживую из accountsCache; пока аккаунты ещё не
+// загружены — используем accountCount из API как стартовое значение.
+function groupAccountCount(groupId) {
+  if (accountsCache.length) return accountsCache.filter((a) => (a.groupId || 'ua') === groupId).length;
+  const g = groupsCache.find((x) => x.id === groupId);
+  return g ? (g.accountCount ?? 0) : 0;
+}
+function updateGroupPairNotes() {
+  for (const row of document.querySelectorAll('#groupsList .group-row')) {
+    const note = row.querySelector('.note-pair');
+    if (!note) continue;
+    note.textContent = groupAccountCount(row.dataset.id) < 2
+      ? '⚠ нужно ≥2 номера для прогрева внутри страны' : '';
+  }
+}
+
 function renderGroups(list) {
   groupsCache = Array.isArray(list) ? list : [];
   const box = $('groupsList');
   box.innerHTML = '';
   for (const g of groupsCache) box.appendChild(groupRow(g));
   populateGroupSelect();
+  updateGroupPairNotes();
 }
 
 async function loadGroups() {

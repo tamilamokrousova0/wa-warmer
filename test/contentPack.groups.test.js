@@ -44,3 +44,29 @@ test('ensure() creates the 4 group dirs + shared media dirs, and seeds de from c
     assert.ok(deContent.length > 0, 'de/messages.txt should be seeded and non-empty');
   }
 });
+
+test('ensure() populates shared/images from content-seed when the runtime dir is empty', () => {
+  const { content, paths } = freshContentPack();
+  const seedDir = path.join(__dirname, '..', 'content-seed', 'shared', 'images');
+  const IMG = /\.(jpe?g|png)$/i;
+  const seedImgs = fs.readdirSync(seedDir).filter((f) => IMG.test(f));
+  assert.ok(seedImgs.length > 0, 'seed dir must ship real images for this test');
+
+  content.ensure();
+
+  const seeded = fs.readdirSync(paths.sharedImagesDir()).filter((f) => IMG.test(f));
+  assert.strictEqual(seeded.length, seedImgs.length, 'all seed images should be copied into shared/images');
+});
+
+test('ensure() does not overwrite existing shared/images (only seeds when empty)', () => {
+  const { content, paths } = freshContentPack();
+  const dir = paths.sharedImagesDir();
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'mine.jpg'), 'user-image');
+
+  content.ensure();
+
+  const files = fs.readdirSync(dir).filter((f) => /\.(jpe?g|png)$/i.test(f));
+  assert.deepStrictEqual(files, ['mine.jpg'], 'user images should be left untouched, no seeding');
+  assert.strictEqual(fs.readFileSync(path.join(dir, 'mine.jpg'), 'utf8'), 'user-image');
+});

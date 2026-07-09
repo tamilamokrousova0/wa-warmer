@@ -8,6 +8,7 @@
   "scripts": {
     "build-gowa": "node scripts/build-gowa.mjs",
     "seed-messages": "node scripts/seed-messages.mjs",
+    "fetch-images": "node scripts/fetch-images.mjs",
     "prestart": "node scripts/ensure-assets.mjs",
     "start": "node src/server/server.js",
     "preserver": "node scripts/ensure-assets.mjs",

@@ -19,6 +19,19 @@ function normalizeProxy(s) {
   return `socks5://${p}`;
 }
 
+// прокси указывает на локальную машину (127.0.0.1 / localhost / ::1)?
+// такие адреса типичны для 9Proxy и подобных «forward proxy to port» приложений.
+function isLocalProxy(proxy) {
+  let host = '';
+  try { host = new URL(proxy).hostname; } catch { /* нестандартная схема — парсим вручную */ }
+  if (!host) {
+    const m = /(?:@|\/\/)([^@/:]+):\d+/.exec(String(proxy));
+    host = m ? m[1] : '';
+  }
+  host = host.replace(/^\[|\]$/g, '').toLowerCase();
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1';
+}
+
 function validate(proxy) {
   const p = normalizeProxy(proxy);
   if (!p) return { error: 'Прокси не задан' };
@@ -44,6 +57,9 @@ async function testProxy(proxy) {
   const ipRes = await curl(['-s', '--max-time', '25', '--proxy', v.proxy, 'https://api.ipify.org']);
   const ip = ipRes.out;
   if (!ip || !/^[0-9a-f.:]+$/i.test(ip)) {
+    if (isLocalProxy(v.proxy)) {
+      return { ok: false, error: 'Прокси не отвечает. Для 9Proxy: запустите приложение и привяжите IP к этому порту (Forward proxy to port), протокол SOCKS5.' };
+    }
     return { ok: false, error: 'Прокси не отвечает или неверные данные' };
   }
 
@@ -57,4 +73,4 @@ async function testProxy(proxy) {
   return { ok: true, ip, country: geo.country || '', city: geo.city || '', isp: geo.isp || '' };
 }
 
-module.exports = { testProxy, validate, normalizeProxy };
+module.exports = { testProxy, validate, normalizeProxy, isLocalProxy };
