@@ -116,9 +116,13 @@ async function start() {
 
   // Сначала открываем порт — панель должна быть доступна сразу, не дожидаясь
   // готовности движков (startAll ждёт readiness каждой группы до 20с).
+  // Хост бинда настраивается: 0.0.0.0 (по умолчанию — виден в LAN и через
+  // Tailscale Funnel), либо 127.0.0.1 — тогда извне ТОЛЬКО через Funnel
+  // (`tailscale funnel` подключается локально), без прямого доступа из LAN.
   const port = Number(process.env.WA_PANEL_PORT) || 8760;
-  await app.listen({ host: '0.0.0.0', port });
-  log.info('server', `панель доступна на http://0.0.0.0:${port}`);
+  const host = process.env.WA_PANEL_HOST || '0.0.0.0';
+  await app.listen({ host, port });
+  log.info('server', `панель доступна на http://${host}:${port}`);
 
   // Запуск ядра в фоне: события ядра уходят в панель через WebSocket.
   core.boot({ emit: bridge.emit }).catch((e) => log.error('server', `boot failed: ${e.message}`));
