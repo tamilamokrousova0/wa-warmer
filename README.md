@@ -77,17 +77,23 @@ npm run build-gowa -- --all   # нужен Go >= 1.25; --all соберёт mac-
                                # для одного Mac mini достаточно --current
 ```
 
-1. **Пароль панели** — задайте `WA_PANEL_PASSWORD` (используется только при самом первом
-   запуске: хешируется и сохраняется в `<WA_DATA_DIR>/panel.json`, дальше переменную можно убрать).
-2. **launchd-юнит** — скопируйте `deploy/com.wawarmer.panel.plist` в
-   `~/Library/LaunchAgents/`, подставьте в нём реальные пути (`node`, репозиторий,
-   `WA_DATA_DIR`) и пароль, затем:
+1. **Пароль панели** — при самом первом запуске задайте `WA_PANEL_PASSWORD`
+   (хешируется и сохраняется в `<WA_DATA_DIR>/panel.json`; дальше переменная не нужна,
+   и в plist пароль НЕ пишется).
+2. **launchd-сервис (один инстанс, автозапуск, авто-рестарт)** — установщик сам подставит
+   пути этой машины и положит plist в `~/Library/LaunchAgents/` (пароль в plist не пишет,
+   если `panel.json` уже есть):
    ```bash
-   cp deploy/com.wawarmer.panel.plist ~/Library/LaunchAgents/com.wawarmer.panel.plist
-   # отредактировать плейсхолдеры в скопированном файле
+   npm run install-service            # генерирует plist + печатает команды
+   # сначала остановите ручной инстанс, иначе будет два сервера:
+   pkill -f "server/server.js"; pkill -f "gowa/mac-arm64/whatsapp"; sleep 3
    launchctl load ~/Library/LaunchAgents/com.wawarmer.panel.plist
    ```
-   `KeepAlive`/`RunAtLoad` держат сервер живым (автозапуск при загрузке, рестарт при падении).
+   `KeepAlive`/`RunAtLoad` держат сервер живым (автостарт при загрузке Mac, рестарт при падении);
+   вместе с авто-возобновлением прогрева (флаг `warmingEnabled`) после ребута сам поднимется и
+   сервер, и прогрев. **Пока сервис загружен, не запускайте `npm run server` вручную** —
+   будет второй инстанс и флап. Перезапуск после `git pull`:
+   `launchctl kickstart -k gui/$(id -u)/com.wawarmer.panel`.
 3. **Доступ** — внутри Tailscale-сети откройте `http://<magicdns-имя-mac-mini>:8760`
    (MagicDNS-имя видно в `tailscale status` / консоли Tailscale).
 4. **Опционально HTTPS** — `tailscale serve --bg 8760` поднимет HTTPS-фронт на
