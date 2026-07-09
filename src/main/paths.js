@@ -1,9 +1,11 @@
 'use strict';
-// Resolves filesystem locations for the packaged/dev app: the GOWA binary,
-// the bundled content pack, and the portable runtime data directory.
+// Resolves filesystem locations for the app: the GOWA binary, the bundled
+// content pack, and the portable runtime data directory. No Electron
+// dependency — the data directory is resolved from an env var (or a
+// well-known default), so this module works under plain Node too.
 const path = require('node:path');
 const fs = require('node:fs');
-const { app } = require('electron');
+const os = require('node:os');
 
 // Folder naming matches electron-builder's ${os}-${arch} macros (mac/win/linux
 // + x64/arm64), so the same path works in dev and in the packaged app.
@@ -16,47 +18,21 @@ const platformKey = `${osToken(process.platform)}-${process.arch}`;
 const exeName = process.platform === 'win32' ? 'whatsapp.exe' : 'whatsapp';
 
 function resourcesRoot() {
-  // Packaged: files live under process.resourcesPath (extraResources).
-  // Dev: they live under <projectRoot>/resources.
-  return app.isPackaged ? process.resourcesPath : path.join(__dirname, '..', '..', 'resources');
+  return process.env.WA_RESOURCES_DIR || path.join(__dirname, '..', '..', 'resources');
 }
 
 function gowaBinaryPath() {
   return path.join(resourcesRoot(), 'gowa', platformKey, exeName);
 }
 
-function isWritable(dir) {
-  try {
-    fs.mkdirSync(dir, { recursive: true });
-    const probe = path.join(dir, '.writetest');
-    fs.writeFileSync(probe, 'ok');
-    fs.unlinkSync(probe);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 let cachedDataDir = null;
+function setDataDir(dir) { cachedDataDir = dir; }
 function dataDir() {
   if (cachedDataDir) return cachedDataDir;
-
-  // Windows portable: beside the .exe (reliable via PORTABLE_EXECUTABLE_DIR).
-  if (process.env.PORTABLE_EXECUTABLE_DIR) {
-    const p = path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'data');
-    if (isWritable(p)) { cachedDataDir = p; return p; }
-  }
-  // Dev run: project root.
-  if (!app.isPackaged) {
-    const p = path.join(__dirname, '..', '..', 'data');
-    if (isWritable(p)) { cachedDataDir = p; return p; }
-  }
-  // Packaged mac/linux: a fixed, predictable, always-writable location.
-  // (Beside-the-.app is unreliable on macOS because Gatekeeper "App
-  // Translocation" runs downloaded apps from a random read-only copy.)
-  cachedDataDir = path.join(app.getPath('appData'), 'WA Warmer', 'data');
-  fs.mkdirSync(cachedDataDir, { recursive: true });
-  return cachedDataDir;
+  const base = process.env.WA_DATA_DIR || path.join(os.homedir(), '.wa-warmer', 'data');
+  fs.mkdirSync(base, { recursive: true });
+  cachedDataDir = base;
+  return base;
 }
 
 function gowaDbPath() {
@@ -78,20 +54,29 @@ function configFile() {
 }
 
 // User-editable content lives next to the app so it's easy to manage.
+// Text/links are per country-group (each group has its own language); images
+// and voice notes are shared across all groups.
 function contentDir() {
   return path.join(dataDir(), 'content-pack');
 }
-function messagesFile() {
-  return path.join(contentDir(), 'messages.txt');
+function messagesFile(groupId = 'ua') {
+  return path.join(contentDir(), groupId, 'messages.txt');
 }
-function linksFile() {
-  return path.join(contentDir(), 'links.txt');
+function linksFile(groupId = 'ua') {
+  return path.join(contentDir(), groupId, 'links.txt');
 }
+function sharedImagesDir() {
+  return path.join(contentDir(), 'shared', 'images');
+}
+function sharedVoiceDir() {
+  return path.join(contentDir(), 'shared', 'voice');
+}
+// Legacy aliases — images/voice are shared media, kept for existing call sites (e.g. ipc.js).
 function contentImagesDir() {
-  return path.join(contentDir(), 'images');
+  return sharedImagesDir();
 }
 function contentVoiceDir() {
-  return path.join(contentDir(), 'voice');
+  return sharedVoiceDir();
 }
 function statsFile() {
   return path.join(dataDir(), 'stats.json');
@@ -104,6 +89,7 @@ module.exports = {
   resourcesRoot,
   gowaBinaryPath,
   dataDir,
+  setDataDir,
   gowaDbPath,
   gowaKeysDbPath,
   accountsFile,
@@ -111,6 +97,8 @@ module.exports = {
   contentDir,
   messagesFile,
   linksFile,
+  sharedImagesDir,
+  sharedVoiceDir,
   contentImagesDir,
   contentVoiceDir,
   statsFile,

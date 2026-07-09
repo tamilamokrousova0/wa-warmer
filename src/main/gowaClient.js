@@ -1,41 +1,49 @@
 'use strict';
 // Thin HTTP client for the GOWA REST API. Every call carries basic-auth and,
-// where relevant, the per-account X-Device-Id header.
+// where relevant, the per-account X-Device-Id header. The pool has one GOWA
+// process per country group, so every request resolves its target engine
+// (baseUrl + auth) via engineRouter instead of a single module-global one.
 const fs = require('node:fs');
 const path = require('node:path');
 
-let baseUrl = null;
-let authHeader = null;
+// Lazy require: gowaManager requires gowaClient (for setWebhook), and
+// engineRouter requires gowaManager — a top-level require here would close
+// that cycle mid-load and hand engineRouter a not-yet-populated gowaManager
+// export. Deferring to call time (after every module has finished loading)
+// sidesteps the ordering problem entirely.
+const router = () => require('./engineRouter');
 
-function configure({ port, user, pass }) {
-  baseUrl = `http://127.0.0.1:${port}`;
-  authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+// Resolve the engine for a request: by device (existing account) when
+// deviceId is given, else by group (e.g. creating a brand-new device that
+// has no deviceId yet).
+function resolveEngine({ deviceId, groupId }) {
+  if (deviceId) return router().forDevice(deviceId);
+  if (groupId) return router().forGroup(groupId);
+  return null;
 }
 
-function isConfigured() {
-  return !!baseUrl;
+function authHeaderFor(deviceId) {
+  const eng = router().forDevice(deviceId);
+  return eng ? eng.auth : null;
 }
 
-function authHeaderValue() {
-  return authHeader;
-}
-
-function headers(deviceId, extra = {}) {
-  const h = { Authorization: authHeader, ...extra };
+function headers(eng, deviceId, extra = {}) {
+  const h = { Authorization: eng.auth, ...extra };
   if (deviceId) h['X-Device-Id'] = deviceId;
   return h;
 }
 
-async function request(method, endpoint, { deviceId, json, body, extraHeaders } = {}) {
-  if (!baseUrl) throw new Error('gowaClient not configured');
-  const opts = { method, headers: headers(deviceId, extraHeaders) };
+async function request(method, endpoint, { deviceId, groupId, json, body, extraHeaders } = {}) {
+  const eng = resolveEngine({ deviceId, groupId });
+  if (!eng) throw new Error('нет активного движка для запроса');
+  const opts = { method, headers: headers(eng, deviceId, extraHeaders) };
   if (json !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(json);
   } else if (body !== undefined) {
     opts.body = body; // FormData
   }
-  const res = await fetch(`${baseUrl}${endpoint}`, opts);
+  const res = await fetch(`${eng.baseUrl}${endpoint}`, opts);
   const text = await res.text();
   let data;
   try {
@@ -53,10 +61,10 @@ async function request(method, endpoint, { deviceId, json, body, extraHeaders } 
 }
 
 // --- device management (GOWA generates the id) ---
-const createDevice = (displayName) =>
-  request('POST', '/devices', { json: { display_name: displayName || '' } });
-const listDevices = () => request('GET', '/devices', {});
-const deleteDevice = (id) => request('DELETE', `/devices/${encodeURIComponent(id)}`, {});
+const createDevice = (groupId, displayName) =>
+  request('POST', '/devices', { groupId, json: { display_name: displayName || '' } });
+const listDevices = (groupId) => request('GET', '/devices', { groupId });
+const deleteDevice = (deviceId) => request('DELETE', `/devices/${encodeURIComponent(deviceId)}`, { deviceId });
 
 // --- app / session (scoped by X-Device-Id) ---
 const login = (deviceId) => request('GET', '/app/login', { deviceId });
@@ -118,9 +126,7 @@ const sendAudio = (deviceId, phone, filePath) =>
   sendFileForm(deviceId, '/send/audio', 'audio', filePath, { phone });
 
 module.exports = {
-  configure,
-  isConfigured,
-  authHeaderValue,
+  authHeaderFor,
   createDevice,
   listDevices,
   deleteDevice,

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd-юнит для панели WA Warmer на Mac mini (постоянный сервис, автостарт).
+
+  Перед установкой замените плейсхолдеры:
+    /opt/homebrew/bin/node        — путь к node (macOS/Homebrew: `which node`)
+    /Users/YOUR_USER/wa-warmer    — путь к чекауту репозитория
+    YOUR_STRONG_PASSWORD          — пароль панели (используется только при самом первом
+                                      запуске — далее хеш живёт в data/panel.json, и эту
+                                      переменную можно убрать)
+
+  Установка:
+    cp deploy/com.wawarmer.panel.plist ~/Library/LaunchAgents/com.wawarmer.panel.plist
+    # отредактировать плейсхолдеры выше в скопированном файле
+    launchctl load ~/Library/LaunchAgents/com.wawarmer.panel.plist
+
+  Управление:
+    launchctl unload ~/Library/LaunchAgents/com.wawarmer.panel.plist   # остановить
+    launchctl load   ~/Library/LaunchAgents/com.wawarmer.panel.plist   # запустить
+    tail -f ~/Library/Logs/wa-warmer/panel.log                        # логи
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.wawarmer.panel</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/YOUR_USER/wa-warmer/src/server/server.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/YOUR_USER/wa-warmer</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>WA_DATA_DIR</key>
+    <string>/Users/YOUR_USER/.wa-warmer/data</string>
+    <key>WA_PANEL_PORT</key>
+    <string>8760</string>
+    <key>WA_PANEL_PASSWORD</key>
+    <string>YOUR_STRONG_PASSWORD</string>
+    <key>WA_RESOURCES_DIR</key>
+    <string>/Users/YOUR_USER/wa-warmer/resources</string>
+  </dict>
+
+  <!-- держать процесс живым: перезапускать при падении и при перезагрузке машины -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/wa-warmer/panel.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/YOUR_USER/Library/Logs/wa-warmer/panel.log</string>
+</dict>
+</plist>

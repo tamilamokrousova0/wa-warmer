@@ -72,7 +72,7 @@ function accountRow(a) {
   li.innerHTML = `
     <span class="dot ${dotClass}"></span>
     <span class="meta">
-      <span class="top"><span class="label"></span><span class="phone"></span></span>
+      <span class="top"><span class="label"></span><span class="group-badge"></span><span class="phone"></span></span>
       <span class="stats"></span>
       <span class="next small"></span>
     </span>
@@ -81,11 +81,15 @@ function accountRow(a) {
     ${pauseBtn}
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
+  const gid = a.groupId || 'ua';
+  const badge = li.querySelector('.group-badge');
+  badge.textContent = groupLabel(gid);
+  badge.classList.add('grp-' + gid);
   li.querySelector('.edit').onclick = () => startRename(li, a);
   li.querySelector('.phone').textContent = a.paused ? 'на паузе'
     : (a.connected ? (a.phone ? '+' + a.phone : 'онлайн')
       : (a.sessionLost ? 'нужен ре-логин (сессия потеряна)' : (a.jid ? 'переподключение…' : 'не привязан')));
-  li.querySelector('.stats').textContent = `день ${a.days ?? 1} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
+  li.querySelector('.stats').textContent = `${a.ready ? '✅ прогрет' : 'день ' + (a.days ?? 1)} · чатов ${a.chats ?? 0} · ↑${a.sent ?? 0} · ↓${a.received ?? 0}`;
   const nextEl = li.querySelector('.next');
   const nextTxt = nextActionText(a);
   if (nextTxt) nextEl.textContent = nextTxt; else nextEl.style.display = 'none';
@@ -193,6 +197,123 @@ async function saveConfig() {
   'daysPerPartner', 'settleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
+// ---------- groups (per-group proxy; saving restarts changed engines) ----------
+let groupsCache = [];
+const ROLE_RU = { primary: 'основная', aux: 'вспомог.' };
+// ожидаемая страна IP для каждой группы (регистронезависимо, с распространёнными вариантами)
+const GROUP_COUNTRY = {
+  ua: ['ukraine'],
+  de: ['germany'],
+  pl: ['poland'],
+  uk: ['united kingdom', 'uk', 'great britain', 'england'],
+};
+function groupLabel(id) { const g = groupsCache.find((x) => x.id === id); return g ? g.label : id; }
+
+function setGroupsStatus(text, kind /* 'ok' | 'err' | '' */) {
+  const el = $('groupsStatus');
+  el.textContent = text;
+  el.classList.toggle('ok', kind === 'ok');
+  el.classList.toggle('err', kind === 'err');
+}
+
+function groupRow(g) {
+  const div = document.createElement('div');
+  div.className = 'group-row';
+  div.dataset.id = g.id;
+  div.innerHTML = `
+    <div class="group-info">
+      <span class="group-badge grp-${g.id}">${g.label}</span>
+      <span class="group-role muted small">${g.country} · ${ROLE_RU[g.role] || g.role}</span>
+    </div>
+    <input class="group-proxy" type="text" spellcheck="false" autocomplete="off" placeholder="socks5://user:pass@host:1080" />
+    <button class="btn btn-mini group-test">Проверить</button>
+    <span class="group-result muted small"></span>
+    <div class="group-notes">
+      <span class="note-pair amber small"></span>
+      <span class="note-geo amber small"></span>
+    </div>`;
+  div.querySelector('.group-proxy').value = g.proxy || '';
+  // предупреждение: для прогрева внутри страны нужна пара номеров
+  if ((g.accountCount ?? 0) < 2) {
+    div.querySelector('.note-pair').textContent = '⚠ нужно ≥2 номера для прогрева внутри страны';
+  }
+  const resEl = div.querySelector('.group-result');
+  const geoEl = div.querySelector('.note-geo');
+  div.querySelector('.group-test').onclick = async (e) => {
+    const proxy = div.querySelector('.group-proxy').value.trim();
+    resEl.className = 'group-result muted small';
+    geoEl.textContent = '';
+    if (!proxy) { resEl.textContent = 'прямое подключение'; return; }
+    e.target.disabled = true;
+    resEl.textContent = 'проверяю…';
+    try {
+      const r = await api.testProxy(proxy);
+      if (r.ok) {
+        const geo = [r.city, r.country].filter(Boolean).join(', ');
+        resEl.textContent = `✓ ${r.ip}${geo ? ` — ${geo}` : ''}`;
+        resEl.classList.add('ok');
+        // сверяем страну IP с ожидаемой страной группы
+        const expected = GROUP_COUNTRY[g.id];
+        const ipCountry = String(r.country || '').trim();
+        if (expected && ipCountry && !expected.includes(ipCountry.toLowerCase())) {
+          geoEl.textContent = `⚠ IP ${ipCountry} ≠ страна группы`;
+        }
+      } else {
+        resEl.textContent = `✕ ${r.error || 'не удалось'}`;
+        resEl.classList.add('err');
+      }
+    } catch (err) {
+      resEl.textContent = `✕ ${err.message}`;
+      resEl.classList.add('err');
+    } finally {
+      e.target.disabled = false;
+    }
+  };
+  return div;
+}
+
+function populateGroupSelect() {
+  const sel = $('qrGroup');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = groupsCache.map((g) => `<option value="${g.id}">${g.label} (${g.country})</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function renderGroups(list) {
+  groupsCache = Array.isArray(list) ? list : [];
+  const box = $('groupsList');
+  box.innerHTML = '';
+  for (const g of groupsCache) box.appendChild(groupRow(g));
+  populateGroupSelect();
+}
+
+async function loadGroups() {
+  try { renderGroups(await api.getGroups()); } catch { /* ignore */ }
+}
+
+$('groupsSave').onclick = async () => {
+  const rows = [...document.querySelectorAll('#groupsList .group-row')];
+  const groups = rows.map((row) => {
+    const base = groupsCache.find((x) => x.id === row.dataset.id) || { id: row.dataset.id };
+    return { ...base, proxy: row.querySelector('.group-proxy').value.trim() };
+  });
+  const btn = $('groupsSave');
+  btn.disabled = true;
+  setGroupsStatus('Сохраняю, движки перезапускаются…', '');
+  try {
+    const r = await api.saveGroups(groups);
+    if (r && r.error) { setGroupsStatus(`✕ ${r.error}`, 'err'); return; }
+    groupsCache = r.groups || groups;
+    const n = (r.restarted || []).length;
+    setGroupsStatus(n ? `Сохранено. Перезапущены движки: ${r.restarted.join(', ')}.` : 'Сохранено. Без изменений прокси.', 'ok');
+  } catch (e) {
+    setGroupsStatus(`✕ ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 // ---------- warming ----------
 $('startBtn').onclick = async () => {
   await saveConfig();
@@ -231,6 +352,7 @@ $('tabCode').onclick = () => setMode('code');
 $('addBtn').onclick = () => {
   $('qrLabel').value = '';
   $('qrPhone').value = '';
+  if ($('qrGroup').options.length) $('qrGroup').value = 'ua';
   $('qrStage').classList.add('hidden');
   $('codeStage').classList.add('hidden');
   $('qrBox').innerHTML = '<span class="muted">получаем QR…</span>';
@@ -255,12 +377,19 @@ function showAddError(msg) {
   $('qrBox').innerHTML = '';
   $('qrStart').disabled = false;
 }
+// автозаполнение группы по префиксу номера (клиентский помощник api.detectGroup)
+$('qrPhone').addEventListener('input', () => {
+  const gid = api.detectGroup($('qrPhone').value);
+  if (gid) $('qrGroup').value = gid;
+});
+
 $('qrStart').onclick = async () => {
   const label = $('qrLabel').value.trim() || 'Аккаунт';
+  const groupId = $('qrGroup').value || 'ua';
   $('qrStart').disabled = true;
   $('qrHint').style.color = '';
   if (loginMode === 'qr') {
-    const r = await api.startLogin(label);
+    const r = await api.startLogin(label, groupId);
     if (r.error) { showAddError(r.error); return; }
     $('codeStage').classList.add('hidden');
     $('qrHint').textContent = 'WhatsApp → Настройки → Связанные устройства → Привязать устройство. Сканируйте сразу — код обновляется каждые 20с.';
@@ -270,7 +399,7 @@ $('qrStart').onclick = async () => {
   } else {
     const phone = $('qrPhone').value.replace(/[^0-9]/g, '');
     if (!phone) { $('qrStart').disabled = false; return; }
-    const r = await api.startLoginCode(label, phone);
+    const r = await api.startLoginCode(label, phone, groupId);
     if (r.error) { showAddError(r.error); return; }
     $('qrStage').classList.add('hidden');
     $('codeStage').classList.remove('hidden');
@@ -310,6 +439,23 @@ $('bulkStart').onclick = async () => {
 // ---------- stats dashboard ----------
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 function fmtDay(iso) { return `${+iso.slice(8, 10)} ${MONTHS[+iso.slice(5, 7) - 1]}`; }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+// фаза прогрева → человекочитаемый чип
+const PHASE_LABEL = { settle: '⏳ Отлёжка', intra: '🔥 Прогрев внутри страны', boost: '🌍 Буст Европой', ready: '✅ Готов' };
+// «Дальше» — что предстоит аккаунту, исходя из фазы (день N−1 буст, N+1 готов)
+function nextStatsText(a, acc) {
+  const wd = a.warmDays || 10;
+  if (a.phase === 'settle') {
+    const su = acc && acc.settleUntil;
+    const left = (su && su > Date.now()) ? ` · ${fmtDuration(su - Date.now())}` : '';
+    return `прогрев начнётся после отлёжки${left}`;
+  }
+  if (a.phase === 'boost') return `финальный буст · готов на дне ${wd + 1}`;
+  if (a.phase === 'ready') return '— готов к работе';
+  // intra
+  return `буст Европой с дня ${wd - 1}, готов на дне ${wd + 1}`;
+}
 
 async function openStats() {
   const s = await api.statsFull();
@@ -334,12 +480,36 @@ async function openStats() {
       `<span class="day-val">${d.total || ''}</span></div>`;
   }).join('');
 
-  // per-account: a clean numeric table
-  $('statsPerAccount').innerHTML =
-    '<div class="sa-head"><span>Аккаунт</span><span>день</span><span>чатов</span><span>отпр.</span><span>прин.</span></div>' +
-    (s.perAccount.map((a) => `<div class="sa-line"><span class="sa-name">${a.label}</span>` +
-      `<span>${a.days}</span><span>${a.chats ?? 0}</span><span>${a.sent}</span><span>${a.received}</span></div>`).join('')
-      || '<div class="muted small">нет данных</div>');
+  // per-account: карточки прогресса «что сделано / что будет»
+  $('statsPerAccount').innerHTML = s.perAccount.length
+    ? s.perAccount.map((a) => {
+      const acc = accountsCache.find((x) => x.deviceId === a.deviceId) || {};
+      const gid = acc.groupId || 'ua';
+      const phone = acc.phone ? '+' + acc.phone : '';
+      const wd = a.warmDays || 10;
+      const day = a.day ?? a.days ?? 1;
+      const pct = Math.max(0, Math.min(100, (day / Math.max(1, wd)) * 100)).toFixed(0);
+      const phase = a.phase || 'intra';
+      return `<div class="sa-card">
+        <div class="sa-top">
+          <span class="group-badge grp-${gid}">${esc(groupLabel(gid))}</span>
+          <span class="sa-name">${esc(a.label)}</span>
+          <span class="sa-phone muted small">${esc(phone)}</span>
+          <span class="phase-chip phase-${phase}">${PHASE_LABEL[phase] || phase}</span>
+        </div>
+        <div class="sa-progress">
+          <span class="sa-day small">День ${day}/${wd}</span>
+          <span class="progress-bar"><i style="width:${pct}%"></i></span>
+        </div>
+        <div class="sa-metrics small">
+          <span>сегодня ${a.sentToday ?? 0}/${a.capToday ?? 0}</span>
+          <span>чатов ${a.chats ?? 0}/${a.plannedPartners ?? 0}</span>
+          <span>↑${a.sent ?? 0} ↓${a.received ?? 0}</span>
+        </div>
+        <div class="sa-next small"><span class="muted">Дальше:</span> ${esc(nextStatsText(a, acc))}</div>
+      </div>`;
+    }).join('')
+    : '<div class="muted small">нет данных</div>';
 
   $('statsModal').classList.remove('hidden');
 }
@@ -347,10 +517,26 @@ $('statsBtn').onclick = openStats;
 $('statsClose').onclick = () => $('statsModal').classList.add('hidden');
 $('helpBtn').onclick = async () => {
   $('helpModal').classList.remove('hidden');
+  $('copyDataStatus').textContent = '';
   try { $('dataPath').textContent = await api.dataPath(); } catch { /* ignore */ }
 };
 $('helpClose').onclick = () => $('helpModal').classList.add('hidden');
-$('openDataBtn').onclick = () => api.openDataFolder();
+// Панель может работать на удалённом сервере — из браузера нельзя открыть папку.
+// Вместо этого копируем путь в буфер обмена и показываем подтверждение.
+async function copyDataPath(statusEl) {
+  let path = '';
+  try { path = await api.dataPath(); } catch { /* ignore */ }
+  if (!path) return;
+  try {
+    await navigator.clipboard.writeText(path);
+    if (statusEl) { statusEl.textContent = '✓ путь скопирован'; setTimeout(() => { if (statusEl.textContent === '✓ путь скопирован') statusEl.textContent = ''; }, 2500); }
+    appendLog({ ts: Date.now(), tag: 'app', level: 'info', msg: 'путь к данным скопирован в буфер' });
+  } catch {
+    if (statusEl) statusEl.textContent = path; // fallback: покажем путь для ручного копирования
+    appendLog({ ts: Date.now(), tag: 'app', level: 'warn', msg: `не удалось скопировать; путь: ${path}` });
+  }
+}
+$('copyDataBtn').onclick = () => copyDataPath($('copyDataStatus'));
 $('statsExport').onclick = async () => {
   const r = await api.statsExportCsv();
   if (r && r.path) appendLog({ ts: Date.now(), tag: 'app', level: 'info', msg: `статистика сохранена: ${r.path}` });
@@ -371,19 +557,42 @@ function renderCounts(c) {
     `сообщ: ${c.messages} · ссыл: ${c.links} · карт: ${c.images} · голос: ${c.voice ?? 0}`;
 }
 async function refreshContent() { renderCounts(await api.contentCounts()); }
-$('openContent').onclick = () => api.contentOpenFolder();
+// 📂 → копирование пути к данным (нет открытия папки в браузере)
+$('openContent').onclick = () => copyDataPath(null);
 $('reloadContent').onclick = async () => renderCounts(await api.contentReload());
 $('addImages').onclick = async () => renderCounts(await api.contentAddImages());
 
-function setGowa(s) {
-  gowaReady = !!s.ready;
+// Движков теперь пул (по одному на страну-группу). gowa.info() отдаёт МАССИВ
+// [{id,ready,port},...], а события gowa:state приходят по одной группе
+// {groupId,ready}. Держим карту готовности per-group и агрегируем: Старт
+// разрешён, пока жив хотя бы один движок, — упавший aux не должен блокировать
+// прогрев, если основной (ua) поднят.
+const gowaEngines = new Map(); // groupId -> ready(bool)
+
+function recomputeGowa() {
+  const total = gowaEngines.size;
+  const ready = [...gowaEngines.values()].filter(Boolean).length;
+  gowaReady = total > 0 && ready > 0;
   const dot = $('gowaDot');
   const txt = $('gowaText');
-  if (s.ready) { dot.className = 'dot dot-on'; txt.textContent = `движок: готов (порт ${s.port})`; }
-  else if (s.fatal) { dot.className = 'dot dot-err'; txt.textContent = 'движок: не запустился'; }
-  else if (s.restarting) { dot.className = 'dot dot-warn'; txt.textContent = 'движок: перезапуск…'; }
-  else { dot.className = 'dot dot-off'; txt.textContent = 'движок: запуск…'; }
+  if (total === 0) { dot.className = 'dot dot-off'; txt.textContent = 'движок: запуск…'; }
+  else if (ready === total) { dot.className = 'dot dot-on'; txt.textContent = `движок: готов (${ready}/${total})`; }
+  else if (ready > 0) { dot.className = 'dot dot-warn'; txt.textContent = `движок: ${ready}/${total}`; }
+  else { dot.className = 'dot dot-err'; txt.textContent = 'движок: запуск…'; }
   refreshAccounts();
+}
+
+// seed из gowa.info() (массив)
+function seedGowa(list) {
+  gowaEngines.clear();
+  if (Array.isArray(list)) for (const e of list) gowaEngines.set(e.id, !!e.ready);
+  recomputeGowa();
+}
+
+// событие по одной группе {groupId, ready}
+function setGowa(s) {
+  if (s && s.groupId) gowaEngines.set(s.groupId, !!s.ready);
+  recomputeGowa();
 }
 
 // ---------- log ----------
@@ -428,11 +637,12 @@ api.onWarmingTick((t) => {
 // ---------- boot ----------
 (async function init() {
   await loadConfig();
+  await loadGroups();
   await refreshContent();
   await refreshAccounts();
   try {
-    const g = await api.gowaStatus();
-    setGowa(g);
+    const g = await api.gowaStatus(); // массив [{id,ready,port},...]
+    seedGowa(g);
   } catch { /* ignore */ }
   const hist = await api.logHistory();
   hist.forEach((l) => appendLog(l));
