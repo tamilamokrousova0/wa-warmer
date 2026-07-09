@@ -200,6 +200,13 @@ async function saveConfig() {
 // ---------- groups (per-group proxy; saving restarts changed engines) ----------
 let groupsCache = [];
 const ROLE_RU = { primary: 'основная', aux: 'вспомог.' };
+// ожидаемая страна IP для каждой группы (регистронезависимо, с распространёнными вариантами)
+const GROUP_COUNTRY = {
+  ua: ['ukraine'],
+  de: ['germany'],
+  pl: ['poland'],
+  uk: ['united kingdom', 'uk', 'great britain', 'england'],
+};
 function groupLabel(id) { const g = groupsCache.find((x) => x.id === id); return g ? g.label : id; }
 
 function setGroupsStatus(text, kind /* 'ok' | 'err' | '' */) {
@@ -220,12 +227,22 @@ function groupRow(g) {
     </div>
     <input class="group-proxy" type="text" spellcheck="false" autocomplete="off" placeholder="socks5://user:pass@host:1080" />
     <button class="btn btn-mini group-test">Проверить</button>
-    <span class="group-result muted small"></span>`;
+    <span class="group-result muted small"></span>
+    <div class="group-notes">
+      <span class="note-pair amber small"></span>
+      <span class="note-geo amber small"></span>
+    </div>`;
   div.querySelector('.group-proxy').value = g.proxy || '';
+  // предупреждение: для прогрева внутри страны нужна пара номеров
+  if ((g.accountCount ?? 0) < 2) {
+    div.querySelector('.note-pair').textContent = '⚠ нужно ≥2 номера для прогрева внутри страны';
+  }
   const resEl = div.querySelector('.group-result');
+  const geoEl = div.querySelector('.note-geo');
   div.querySelector('.group-test').onclick = async (e) => {
     const proxy = div.querySelector('.group-proxy').value.trim();
     resEl.className = 'group-result muted small';
+    geoEl.textContent = '';
     if (!proxy) { resEl.textContent = 'прямое подключение'; return; }
     e.target.disabled = true;
     resEl.textContent = 'проверяю…';
@@ -235,6 +252,12 @@ function groupRow(g) {
         const geo = [r.city, r.country].filter(Boolean).join(', ');
         resEl.textContent = `✓ ${r.ip}${geo ? ` — ${geo}` : ''}`;
         resEl.classList.add('ok');
+        // сверяем страну IP с ожидаемой страной группы
+        const expected = GROUP_COUNTRY[g.id];
+        const ipCountry = String(r.country || '').trim();
+        if (expected && ipCountry && !expected.includes(ipCountry.toLowerCase())) {
+          geoEl.textContent = `⚠ IP ${ipCountry} ≠ страна группы`;
+        }
       } else {
         resEl.textContent = `✕ ${r.error || 'не удалось'}`;
         resEl.classList.add('err');
@@ -416,6 +439,23 @@ $('bulkStart').onclick = async () => {
 // ---------- stats dashboard ----------
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 function fmtDay(iso) { return `${+iso.slice(8, 10)} ${MONTHS[+iso.slice(5, 7) - 1]}`; }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+// фаза прогрева → человекочитаемый чип
+const PHASE_LABEL = { settle: '⏳ Отлёжка', intra: '🔥 Прогрев внутри страны', boost: '🌍 Буст Европой', ready: '✅ Готов' };
+// «Дальше» — что предстоит аккаунту, исходя из фазы (день N−1 буст, N+1 готов)
+function nextStatsText(a, acc) {
+  const wd = a.warmDays || 10;
+  if (a.phase === 'settle') {
+    const su = acc && acc.settleUntil;
+    const left = (su && su > Date.now()) ? ` · ${fmtDuration(su - Date.now())}` : '';
+    return `прогрев начнётся после отлёжки${left}`;
+  }
+  if (a.phase === 'boost') return `финальный буст · готов на дне ${wd + 1}`;
+  if (a.phase === 'ready') return '— готов к работе';
+  // intra
+  return `буст Европой с дня ${wd - 1}, готов на дне ${wd + 1}`;
+}
 
 async function openStats() {
   const s = await api.statsFull();
@@ -440,12 +480,36 @@ async function openStats() {
       `<span class="day-val">${d.total || ''}</span></div>`;
   }).join('');
 
-  // per-account: a clean numeric table
-  $('statsPerAccount').innerHTML =
-    '<div class="sa-head"><span>Аккаунт</span><span>день</span><span>чатов</span><span>отпр.</span><span>прин.</span></div>' +
-    (s.perAccount.map((a) => `<div class="sa-line"><span class="sa-name">${a.label}</span>` +
-      `<span>${a.days}</span><span>${a.chats ?? 0}</span><span>${a.sent}</span><span>${a.received}</span></div>`).join('')
-      || '<div class="muted small">нет данных</div>');
+  // per-account: карточки прогресса «что сделано / что будет»
+  $('statsPerAccount').innerHTML = s.perAccount.length
+    ? s.perAccount.map((a) => {
+      const acc = accountsCache.find((x) => x.deviceId === a.deviceId) || {};
+      const gid = acc.groupId || 'ua';
+      const phone = acc.phone ? '+' + acc.phone : '';
+      const wd = a.warmDays || 10;
+      const day = a.day ?? a.days ?? 1;
+      const pct = Math.max(0, Math.min(100, (day / Math.max(1, wd)) * 100)).toFixed(0);
+      const phase = a.phase || 'intra';
+      return `<div class="sa-card">
+        <div class="sa-top">
+          <span class="group-badge grp-${gid}">${esc(groupLabel(gid))}</span>
+          <span class="sa-name">${esc(a.label)}</span>
+          <span class="sa-phone muted small">${esc(phone)}</span>
+          <span class="phase-chip phase-${phase}">${PHASE_LABEL[phase] || phase}</span>
+        </div>
+        <div class="sa-progress">
+          <span class="sa-day small">День ${day}/${wd}</span>
+          <span class="progress-bar"><i style="width:${pct}%"></i></span>
+        </div>
+        <div class="sa-metrics small">
+          <span>сегодня ${a.sentToday ?? 0}/${a.capToday ?? 0}</span>
+          <span>чатов ${a.chats ?? 0}/${a.plannedPartners ?? 0}</span>
+          <span>↑${a.sent ?? 0} ↓${a.received ?? 0}</span>
+        </div>
+        <div class="sa-next small"><span class="muted">Дальше:</span> ${esc(nextStatsText(a, acc))}</div>
+      </div>`;
+    }).join('')
+    : '<div class="muted small">нет данных</div>';
 
   $('statsModal').classList.remove('hidden');
 }
@@ -453,10 +517,26 @@ $('statsBtn').onclick = openStats;
 $('statsClose').onclick = () => $('statsModal').classList.add('hidden');
 $('helpBtn').onclick = async () => {
   $('helpModal').classList.remove('hidden');
+  $('copyDataStatus').textContent = '';
   try { $('dataPath').textContent = await api.dataPath(); } catch { /* ignore */ }
 };
 $('helpClose').onclick = () => $('helpModal').classList.add('hidden');
-$('openDataBtn').onclick = () => api.openDataFolder();
+// Панель может работать на удалённом сервере — из браузера нельзя открыть папку.
+// Вместо этого копируем путь в буфер обмена и показываем подтверждение.
+async function copyDataPath(statusEl) {
+  let path = '';
+  try { path = await api.dataPath(); } catch { /* ignore */ }
+  if (!path) return;
+  try {
+    await navigator.clipboard.writeText(path);
+    if (statusEl) { statusEl.textContent = '✓ путь скопирован'; setTimeout(() => { if (statusEl.textContent === '✓ путь скопирован') statusEl.textContent = ''; }, 2500); }
+    appendLog({ ts: Date.now(), tag: 'app', level: 'info', msg: 'путь к данным скопирован в буфер' });
+  } catch {
+    if (statusEl) statusEl.textContent = path; // fallback: покажем путь для ручного копирования
+    appendLog({ ts: Date.now(), tag: 'app', level: 'warn', msg: `не удалось скопировать; путь: ${path}` });
+  }
+}
+$('copyDataBtn').onclick = () => copyDataPath($('copyDataStatus'));
 $('statsExport').onclick = async () => {
   const r = await api.statsExportCsv();
   if (r && r.path) appendLog({ ts: Date.now(), tag: 'app', level: 'info', msg: `статистика сохранена: ${r.path}` });
@@ -477,7 +557,8 @@ function renderCounts(c) {
     `сообщ: ${c.messages} · ссыл: ${c.links} · карт: ${c.images} · голос: ${c.voice ?? 0}`;
 }
 async function refreshContent() { renderCounts(await api.contentCounts()); }
-$('openContent').onclick = () => api.contentOpenFolder();
+// 📂 → копирование пути к данным (нет открытия папки в браузере)
+$('openContent').onclick = () => copyDataPath(null);
 $('reloadContent').onclick = async () => renderCounts(await api.contentReload());
 $('addImages').onclick = async () => renderCounts(await api.contentAddImages());
 
