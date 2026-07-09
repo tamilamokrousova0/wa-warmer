@@ -12,7 +12,8 @@
     "prestart": "node scripts/ensure-assets.mjs",
     "start": "node src/server/server.js",
     "preserver": "node scripts/ensure-assets.mjs",
-    "server": "node src/server/server.js"
+    "server": "node src/server/server.js",
+    "seed-voice": "node scripts/seed-voice.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.0",
