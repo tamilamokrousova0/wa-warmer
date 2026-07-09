@@ -13,7 +13,8 @@
     "start": "node src/server/server.js",
     "preserver": "node scripts/ensure-assets.mjs",
     "server": "node src/server/server.js",
-    "seed-voice": "node scripts/seed-voice.mjs"
+    "seed-voice": "node scripts/seed-voice.mjs",
+    "install-service": "node scripts/install-service.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.0",
