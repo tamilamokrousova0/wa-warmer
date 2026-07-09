@@ -45,7 +45,10 @@ function accountsView() {
       connected: !!a.connected,
       sessionLost: !!a.sessionLost,
       paused: !!a.paused,
-      settleUntil: Math.max(addUntil, reUntil),
+      skipSettle: !!a.skipSettle, // ручной оверрайд: отлёжка пропущена
+      forceBoost: !!a.forceBoost, // ручной оверрайд: форсированный кросс-страна буст
+      // при skipSettle отлёжки нет — обнуляем счётчик, чтобы UI не рисовал обратный отсчёт
+      settleUntil: a.skipSettle ? 0 : Math.max(addUntil, reUntil),
       busy: scheduler.isBusy(a.deviceId),
       nextSendAt: scheduler.nextActionAt(a.deviceId),
       activeHours: scheduler.inActiveHoursNow(),
@@ -58,7 +61,7 @@ function accountsView() {
       warmDays: cfg.warmDays,
       phase,
       plannedPartners: scheduler.maxPartners(a, cfg, scheduler.connectedInGroup(a)),
-      boostActive: !!cfg.crossCountryBoost && day >= (cfg.warmDays || 10) - 1 && phase !== 'ready',
+      boostActive: !!cfg.crossCountryBoost && scheduler.inBoostWindow(a, cfg) && phase !== 'ready',
       sent: a.sentTotal || 0,
       received: a.receivedTotal || 0,
       chats: (a.partners || []).length,

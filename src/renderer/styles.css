@@ -61,6 +61,22 @@ body {
 .acct .pause:hover { color: var(--amber); }
 .acct .edit { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 13px; padding: 0 4px; }
 .acct .edit:hover { color: var(--primary); }
+.acct .more { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 15px; line-height: 1; padding: 0 4px; }
+.acct .more:hover { color: var(--primary); }
+
+/* ⋮ popover: ручные оверрайды этапа прогрева */
+.override-menu {
+  position: absolute; z-index: 50;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px;
+  padding: 4px; min-width: 210px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+.override-menu .ovr-item {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: none; color: var(--text); cursor: pointer;
+  font-size: 12px; text-align: left; padding: 6px 8px; border-radius: 5px;
+}
+.override-menu .ovr-item:hover { background: var(--panel); }
+.override-menu .ovr-check { width: 14px; color: var(--green); font-weight: 700; flex: 0 0 14px; }
 .rename-input { background: var(--bg); border: 1px solid var(--primary); color: var(--text); border-radius: 5px; padding: 2px 6px; font-size: 12px; width: 150px; }
 .acct.paused { opacity: 0.6; }
 .acct.paused .phone { color: var(--amber); }

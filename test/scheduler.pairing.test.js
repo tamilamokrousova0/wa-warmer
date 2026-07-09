@@ -75,3 +75,43 @@ test('capFor respects the min-2 floor for aux even on early days', () => {
   assert.ok(sch.__capFor(mk('e', 'de', 1), cfg) >= 2);
   assert.ok(sch.__capFor(mk('e', 'de', 4), cfg) >= 2);
 });
+
+// ---- ручные оверрайды этапа: skipSettle / forceBoost ----
+test('skipSettle: isSettled true even with a just-added account (settleHours>0)', () => {
+  const c = { settleHours: 12, reloginSettleHours: 6 };
+  // без оверрайда свежий аккаунт ещё не сеттлед…
+  assert.strictEqual(sch.__isSettled({ addedAt: Date.now() }, c), false);
+  // …а с skipSettle — сразу сеттлед
+  assert.strictEqual(sch.__isSettled({ addedAt: Date.now(), skipSettle: true }, c), true);
+  // skipSettle перекрывает и окно ре-логина
+  assert.strictEqual(sch.__isSettled({ addedAt: 0, reloggedAt: Date.now(), skipSettle: true }, c), true);
+});
+
+test('forceBoost: cross-country pair allowed on an early day when BOTH forceBoost', () => {
+  const a = { ...mk('a', 'ua', 3), forceBoost: true };
+  const b = { ...mk('c', 'de', 3), forceBoost: true };
+  assert.strictEqual(sch.__canPair(a, b, cfg), true);
+});
+
+test('forceBoost: cross-country still DISALLOWED when only one has forceBoost (other early)', () => {
+  const a = { ...mk('a', 'ua', 3), forceBoost: true };
+  const b = mk('c', 'de', 3); // раннее, без оверрайда
+  assert.strictEqual(sch.__canPair(a, b, cfg), false);
+  assert.strictEqual(sch.__canPair(b, a, cfg), false);
+});
+
+test('inBoostWindow: true for late day OR forceBoost, false for early day', () => {
+  assert.strictEqual(sch.inBoostWindow(mk('a', 'ua', 3), cfg), false);
+  assert.strictEqual(sch.inBoostWindow(mk('a', 'ua', 9), cfg), true);
+  assert.strictEqual(sch.inBoostWindow({ ...mk('a', 'ua', 3), forceBoost: true }, cfg), true);
+});
+
+test('phaseOf: forceBoost early+settled → boost; early not-settled stays settle', () => {
+  const c = { ...cfg, settleHours: 12, reloginSettleHours: 6 };
+  // ранний день, settled (addedAt в прошлом), forceBoost → boost
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 3), addedAt: 0, forceBoost: true }, c), 'boost');
+  // ранний день, свежий ре-логин (не settled), forceBoost, но НЕ skipSettle → всё ещё settle
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 3), addedAt: 0, reloggedAt: Date.now(), forceBoost: true }, c), 'settle');
+  // добавив skipSettle — прорывается в boost
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 3), addedAt: 0, reloggedAt: Date.now(), forceBoost: true, skipSettle: true }, c), 'boost');
+});
