@@ -50,7 +50,7 @@ async function newDevice(label, groupId) {
 }
 
 // Poll /app/status until logged in (or cancelled). onTick lets QR flow refresh code.
-async function pollLogin(deviceId, { maxSec = 150, onTick } = {}) {
+async function pollLogin(deviceId, { maxSec = 150, onTick, isRelogin = false } = {}) {
   const s = sessions.get(deviceId);
   const started = Date.now();
   while (s && !s.cancelled && (Date.now() - started) / 1000 < maxSec) {
@@ -63,6 +63,8 @@ async function pollLogin(deviceId, { maxSec = 150, onTick } = {}) {
     if (r.is_logged_in) {
       const phone = phoneFromJid(r.jid);
       store.upsert({ deviceId, jid: r.jid || '', phone, connected: true });
+      // ре-логин → ставим паузу «отлёжки» (WhatsApp держит ~6ч спам-лимит)
+      if (isRelogin) store.setReloggedAt(deviceId);
       gowa.registerWebhook(deviceId);
       log.info('login', `вошёл: ${phone}`);
       events.emit('success', { deviceId, jid: r.jid, phone });
@@ -112,8 +114,9 @@ async function startLogin(label, groupId) {
   return { deviceId };
 }
 
-// request a pairing code for an existing device (no new device, no name check)
-async function codeLogin(deviceId, phone) {
+// request a pairing code for an existing device (no new device, no name check).
+// isRelogin=true, когда повторно логиним уже существующий оффлайн-аккаунт.
+async function codeLogin(deviceId, phone, isRelogin = false) {
   sessions.set(deviceId, { cancelled: false });
   let code = null;
   try {
@@ -127,7 +130,7 @@ async function codeLogin(deviceId, phone) {
     return { error: e.message };
   }
   (async () => {
-    const ok = await pollLogin(deviceId, { maxSec: 180 });
+    const ok = await pollLogin(deviceId, { maxSec: 180, isRelogin });
     if (!ok && !sessions.get(deviceId)?.cancelled) events.emit('timeout', { deviceId });
     sessions.delete(deviceId);
   })();
@@ -138,7 +141,7 @@ async function startLoginWithCode(label, phone, groupId) {
   const existing = findByLabel(label);
   if (existing) {
     if (existing.connected) return { error: `Название «${label}» уже занято` };
-    return codeLogin(existing.deviceId, phone); // re-login the offline account by code, its own group
+    return codeLogin(existing.deviceId, phone, true); // re-login the offline account by code, its own group
   }
   const gid = groupId || groups.detectGroupId(phone) || 'ua';
   let deviceId;
@@ -156,6 +159,7 @@ async function relogin(deviceId) {
     let lastQr = 0;
     const ok = await pollLogin(deviceId, {
       maxSec: 150,
+      isRelogin: true, // ре-логин существующего устройства → отлёжка после входа
       onTick: async () => { if (Date.now() - lastQr > 20000) { await refreshQr(deviceId); lastQr = Date.now(); } },
     });
     if (!ok && !sessions.get(deviceId)?.cancelled) events.emit('timeout', { deviceId });

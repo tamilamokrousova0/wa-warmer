@@ -196,13 +196,14 @@ function historyDays(days = 14) {
 
 // ---- config ----
 const DEFAULT_CONFIG = {
-  minDelayMin: 3, // gap between conversations, in MINUTES (gentler by default)
-  maxDelayMin: 10,
+  minDelayMin: 5, // gap between conversations, in MINUTES (gentler by default)
+  maxDelayMin: 14,
   imagesEnabled: true,
   linksEnabled: true,
   voiceEnabled: true,
   textNoise: true, // append invisible random chars so each message is byte-unique
   settleHours: 12, // "отлёжка": wait N hours after linking before an account warms
+  reloginSettleHours: 6, // "отлёжка" после ре-логина: пауза, пока WhatsApp снимет ~6ч спам-лимит
   dailyCap: 10, // outgoing messages per account per day (ramp: 2→3→4→6→7→9→10)
   rampUpDays: 7, // grow the daily cap gradually over the first N days
   daysPerPartner: 2, // add one new chat partner every N days (day 1 = 1 partner)
@@ -255,6 +256,15 @@ function setReady(deviceId, value) {
   if (a && !!a.ready !== !!value) { a.ready = !!value; saveAccounts(); }
 }
 
+// Отметить момент успешного ре-логина — планировщик добавит паузу reloginSettleHours,
+// пока WhatsApp держит спам-лимит после повторного входа.
+function setReloggedAt(deviceId) {
+  const a = get(deviceId);
+  if (!a) return;
+  a.reloggedAt = Date.now();
+  saveAccounts();
+}
+
 function accountsInGroup(groupId) {
   return loadAccounts().filter((a) => (a.groupId || 'ua') === groupId);
 }
@@ -285,5 +295,6 @@ module.exports = {
   migrateGroups,
   setGroup,
   setReady,
+  setReloggedAt,
   accountsInGroup,
 };

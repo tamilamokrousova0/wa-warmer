@@ -9,8 +9,18 @@ const { execFile } = require('node:child_process');
 
 const ALLOWED_SCHEMES = ['socks5://', 'socks5h://', 'socks4://', 'http://', 'https://'];
 
+// 9Proxy и подобные отдают «голый» host:port без схемы, а движку нужна схема.
+// Пустая строка остаётся пустой (= прямое соединение); значение со схемой — как есть;
+// иначе считаем это SOCKS5 и подставляем socks5://.
+function normalizeProxy(s) {
+  const p = String(s || '').trim();
+  if (!p) return '';
+  if (ALLOWED_SCHEMES.some((sc) => p.toLowerCase().startsWith(sc))) return p;
+  return `socks5://${p}`;
+}
+
 function validate(proxy) {
-  const p = String(proxy || '').trim();
+  const p = normalizeProxy(proxy);
   if (!p) return { error: 'Прокси не задан' };
   if (!ALLOWED_SCHEMES.some((s) => p.toLowerCase().startsWith(s))) {
     return { error: 'Нужен URL со схемой: socks5://, http:// или https://' };
@@ -47,4 +57,4 @@ async function testProxy(proxy) {
   return { ok: true, ip, country: geo.country || '', city: geo.city || '', isp: geo.isp || '' };
 }
 
-module.exports = { testProxy, validate };
+module.exports = { testProxy, validate, normalizeProxy };

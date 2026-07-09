@@ -197,7 +197,10 @@ function register(app, ctx) {
   });
 
   // ---- группы (per-group прокси) -----------------------------------------
-  app.get('/api/groups', requireSession, async () => store.loadConfig().groups || []);
+  app.get('/api/groups', requireSession, async () => (store.loadConfig().groups || []).map((g) => ({
+    ...g,
+    accountCount: store.accountsInGroup(g.id).length, // для UI-предупреждения «нужно ≥2 на страну»
+  })));
 
   app.post('/api/groups', requireSession, async (req, reply) => {
     const cfg = store.loadConfig();
@@ -213,11 +216,12 @@ function register(app, ctx) {
     for (const g of newGroups) {
       if (!knownIds.has(g.id)) return reply.code(400).send({ error: `unknown group id: ${g.id}` });
     }
-    // Валидация прокси до сохранения (пустой прокси допустим = прямое соединение)
+    // Нормализация + валидация прокси до сохранения (пустой прокси допустим =
+    // прямое соединение). «Голый» host:port от 9Proxy → socks5://host:port.
     for (const g of newGroups) {
-      const px = String(g.proxy || '').trim();
-      if (px) {
-        const v = proxyTest.validate(px);
+      g.proxy = proxyTest.normalizeProxy(g.proxy);
+      if (g.proxy) {
+        const v = proxyTest.validate(g.proxy);
         if (v.error) return reply.code(400).send({ error: `${g.id}: ${v.error}` });
       }
     }

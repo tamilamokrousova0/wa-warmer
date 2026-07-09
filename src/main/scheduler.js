@@ -72,9 +72,10 @@ function canPair(a, b, cfg) {
   return last2(dayOf(a)) && last2(dayOf(b));
 }
 
-// аккаунт «прогрет», когда достиг полного срока прогрева (по умолчанию 10 дней)
+// аккаунт «прогрет» на СЛЕДУЮЩИЙ день после полного срока (по умолчанию день 11 при
+// warmDays=10), чтобы он ещё грелся И бустился в дни 9 и 10, а не выпал на день 10.
 function isReadyDay(acc, cfg) {
-  return dayOf(acc) >= (cfg.warmDays || 10);
+  return dayOf(acc) > (cfg.warmDays || 10);
 }
 
 // дневная норма отправки: ramp с плато (effectiveCap), у aux-групп — вдвое меньше,
@@ -105,11 +106,26 @@ function pacedAllowance(acc, cfg) {
   return Math.max(1, Math.ceil(capFor(acc, cfg) * activeFraction(cfg)));
 }
 
-// "отлёжка": a freshly linked account waits before it starts warming
+// "отлёжка": a freshly linked account waits before it starts warming.
+// Дважды: (a) после добавления (settleHours) и, если был ре-логин, (b) после него
+// (reloginSettleHours) — WhatsApp держит ~6ч спам-лимит после повторного входа.
 function isSettled(acc, cfg) {
   const h = Math.max(0, cfg.settleHours || 0);
-  if (h === 0) return true;
-  return Date.now() - (acc.addedAt || 0) >= h * 3600000;
+  if (h > 0 && Date.now() - (acc.addedAt || 0) < h * 3600000) return false;
+  const rh = Math.max(0, cfg.reloginSettleHours || 0);
+  if (rh > 0 && acc.reloggedAt && Date.now() - acc.reloggedAt < rh * 3600000) return false;
+  return true;
+}
+
+// Фаза прогрева аккаунта для UI: settle | intra | boost | ready. Единый источник
+// истины — вызывается и из scheduler.stats(), и из boot.accountsView(), чтобы
+// логика не расходилась.
+function phaseOf(acc, cfg) {
+  if (isReadyDay(acc, cfg)) return 'ready';
+  if (!isSettled(acc, cfg)) return 'settle';
+  const day = dayOf(acc);
+  if (cfg.crossCountryBoost && day >= (cfg.warmDays || 10) - 1) return 'boost';
+  return 'intra';
 }
 
 const remember = (src) => { if (src) { recentTexts.push(src); while (recentTexts.length > 12) recentTexts.shift(); } };
@@ -184,6 +200,14 @@ function maxPartners(acc, cfg, activeCount) {
   const per = Math.max(1, cfg.daysPerPartner || 2);
   const allowed = 1 + Math.floor((store.daysWarming(acc) - 1) / per);
   return Math.min(allowed, Math.max(1, activeCount - 1));
+}
+
+// best-effort «сколько партнёров реально доступно» для plannedPartners в UI:
+// число подключённых аккаунтов в той же группе (грубая оценка activeCount вне
+// живого прогона планировщика).
+function connectedInGroup(acc) {
+  const gid = acc.groupId || 'ua';
+  return store.all().filter((a) => a.connected && (a.groupId || 'ua') === gid).length;
 }
 
 // all existing (persisted) relationships as unique pairs, in random order
@@ -428,18 +452,29 @@ function stop() {
 function stats() {
   const cfg = config || store.loadConfig();
   const accounts = store.all();
-  const perAccount = accounts.map((a) => ({
-    deviceId: a.deviceId,
-    label: a.label,
-    days: store.daysWarming(a),
-    chats: store.partnersOf(a.deviceId).length,
-    sent: a.sentTotal || 0,
-    received: a.receivedTotal || 0,
-    sentToday: store.sentToday(a.deviceId),
-    // реальный дневной лимит отправки (aux-группы ×0.5), а не «сырой» ramp-cap —
-    // чтобы дашборд/CSV совпадали с тем, сколько аккаунт действительно шлёт.
-    cap: capFor(a, cfg),
-  }));
+  const perAccount = accounts.map((a) => {
+    const day = store.daysWarming(a);
+    const boostActive = !!cfg.crossCountryBoost && day >= (cfg.warmDays || 10) - 1 && !isReadyDay(a, cfg);
+    return {
+      deviceId: a.deviceId,
+      label: a.label,
+      days: day,
+      chats: store.partnersOf(a.deviceId).length,
+      sent: a.sentTotal || 0,
+      received: a.receivedTotal || 0,
+      sentToday: store.sentToday(a.deviceId),
+      // реальный дневной лимит отправки (aux-группы ×0.5), а не «сырой» ramp-cap —
+      // чтобы дашборд/CSV совпадали с тем, сколько аккаунт действительно шлёт.
+      cap: capFor(a, cfg),
+      // расширенные поля для новой карточки прогресса (см. boot.accountsView)
+      day,
+      warmDays: cfg.warmDays,
+      phase: phaseOf(a, cfg),
+      capToday: capFor(a, cfg),
+      plannedPartners: maxPartners(a, cfg, connectedInGroup(a)),
+      boostActive,
+    };
+  });
   const connected = accounts.filter((a) => a.connected).length;
   const sentTotal = accounts.reduce((s, a) => s + (a.sentTotal || 0), 0);
   const receivedTotal = accounts.reduce((s, a) => s + (a.receivedTotal || 0), 0);
@@ -453,9 +488,15 @@ module.exports = {
   nextActionAt: (id) => nextAt.get(id) || 0,
   inActiveHoursNow: () => inActiveHours(config || store.loadConfig()),
   dailyCapFor: (id) => { const a = store.get(id); return a ? capFor(a, config || store.loadConfig()) : 0; },
-  // экспорт чистых функций для тестов
+  // экспорт чистых функций для boot.accountsView() и тестов (единый источник
+  // истины по фазам/отлёжке — чтобы boot.js не дублировал логику)
+  phaseOf,
+  maxPartners,
+  connectedInGroup,
   __canPair: canPair,
   __isReadyDay: isReadyDay,
+  __isSettled: isSettled,
   __capFor: capFor,
   __dayOf: dayOf,
+  __phaseOf: phaseOf,
 };

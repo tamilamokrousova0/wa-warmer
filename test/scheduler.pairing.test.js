@@ -41,9 +41,28 @@ test('cross-country disabled entirely when crossCountryBoost is false', () => {
   assert.strictEqual(sch.__canPair(mk('a', 'ua', 9), mk('b', 'ua', 9), noBoost), true);
 });
 
-test('isReadyDay true at day 10, false at day 9', () => {
-  assert.strictEqual(sch.__isReadyDay(mk('a', 'ua', 10), cfg), true);
+test('isReadyDay false at day 10 (still warms+boosts), true at day 11', () => {
+  assert.strictEqual(sch.__isReadyDay(mk('a', 'ua', 10), cfg), false);
+  assert.strictEqual(sch.__isReadyDay(mk('a', 'ua', 11), cfg), true);
   assert.strictEqual(sch.__isReadyDay(mk('a', 'ua', 9), cfg), false);
+});
+
+test('isSettled respects reloggedAt pause (reloginSettleHours)', () => {
+  const c = { settleHours: 0, reloginSettleHours: 6 };
+  // без reloggedAt — сеттлед (settleHours=0)
+  assert.strictEqual(sch.__isSettled({ addedAt: 0 }, c), true);
+  // свежий ре-логин — ещё не сеттлед
+  assert.strictEqual(sch.__isSettled({ addedAt: 0, reloggedAt: Date.now() }, c), false);
+  // ре-логин >6ч назад — снова сеттлед
+  assert.strictEqual(sch.__isSettled({ addedAt: 0, reloggedAt: Date.now() - 7 * 3600000 }, c), true);
+});
+
+test('phaseOf: settle → intra → boost → ready across the warm window', () => {
+  const c = { ...cfg, settleHours: 12, reloginSettleHours: 6 };
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 3), addedAt: 0, reloggedAt: Date.now() }, c), 'settle');
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 3), addedAt: 0 }, c), 'intra');
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 9), addedAt: 0 }, c), 'boost');
+  assert.strictEqual(sch.__phaseOf({ ...mk('a', 'ua', 11), addedAt: 0 }, c), 'ready');
 });
 
 test('capFor halves for an aux-group account vs a primary account (mid-ramp)', () => {
