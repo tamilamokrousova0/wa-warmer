@@ -29,6 +29,7 @@ function accountsView() {
   const cfg = store.loadConfig();
   const settleMs = Math.max(0, cfg.settleHours || 0) * 3600000;
   const reloginMs = Math.max(0, cfg.reloginSettleHours || 0) * 3600000;
+  const restrictionMs = Math.max(0, cfg.restrictionHours || 0) * 3600000;
   return store.all().map((a) => {
     // отсчёт отлёжки = позднее из двух окон: добавление и (если был) ре-логин
     const addUntil = settleMs && a.addedAt ? a.addedAt + settleMs : 0;
@@ -49,6 +50,8 @@ function accountsView() {
       forceBoost: !!a.forceBoost, // ручной оверрайд: форсированный кросс-страна буст
       // при skipSettle отлёжки нет — обнуляем счётчик, чтобы UI не рисовал обратный отсчёт
       settleUntil: a.skipSettle ? 0 : Math.max(addUntil, reUntil),
+      // информационный отсчёт снятия ограничения WhatsApp после логаута
+      restrictionUntil: a.loggedOutAt && restrictionMs ? a.loggedOutAt + restrictionMs : 0,
       busy: scheduler.isBusy(a.deviceId),
       nextSendAt: scheduler.nextActionAt(a.deviceId),
       activeHours: scheduler.inActiveHoursNow(),
