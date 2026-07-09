@@ -117,6 +117,7 @@
     renameAccount: (deviceId, label) => postJson('/api/account/rename', { deviceId, label }),
     setAccountPaused: (deviceId, paused) => postJson('/api/account/set-paused', { deviceId, paused }),
     setAccountGroup: (deviceId, groupId) => postJson('/api/account/set-group', { deviceId, groupId }),
+    setOverride: (deviceId, patch) => postJson('/api/account/override', { deviceId, ...patch }),
     reconnectAccount: (deviceId) => postJson('/api/account/reconnect', { deviceId }),
     logoutAccount: (deviceId) => postJson('/api/account/logout', { deviceId }),
     startWarming: (config) => postJson('/api/warming/start', { config }),

@@ -54,6 +54,13 @@ function fmtDuration(ms) {
 function nextActionText(a) {
   if (!a.connected || a.paused) return '';
   const now = Date.now();
+  // skipSettle: отлёжка обнулена в accountsView (settleUntil=0). Если аккаунт
+  // ещё был бы в окне отлёжки (по settleHours от addedAt) — сообщаем, что она пропущена.
+  if (a.skipSettle) {
+    const settleH = Math.max(0, +($('settleHours') && $('settleHours').value) || 0);
+    const wouldSettle = settleH && a.addedAt && (now - a.addedAt < settleH * 3600000);
+    if (wouldSettle) return warmingRunning ? '⏭ отлёжка пропущена · в прогреве' : '⏭ отлёжка пропущена · ожидает старта';
+  }
   if (a.settleUntil && a.settleUntil > now) return `⏳ отлёжка · прогрев через ${fmtDuration(a.settleUntil - now)}`;
   if (!warmingRunning) return 'готов · ожидает старта';
   if (a.activeHours === false) return '🌙 вне активных часов';
@@ -79,6 +86,7 @@ function accountRow(a) {
     ${reconBtn}
     <button class="edit" title="Переименовать">✎</button>
     ${pauseBtn}
+    <button class="more" title="Ещё — оверрайды этапа">⋮</button>
     <button class="x" title="Отвязать">✕</button>`;
   li.querySelector('.label').textContent = a.label || 'Аккаунт';
   const gid = a.groupId || 'ua';
@@ -95,11 +103,43 @@ function accountRow(a) {
   if (nextTxt) nextEl.textContent = nextTxt; else nextEl.style.display = 'none';
   const recon = li.querySelector('.recon');
   if (recon) recon.onclick = () => doReconnect(a);
+  li.querySelector('.more').onclick = (e) => { e.stopPropagation(); openOverrideMenu(e.currentTarget, a); };
   li.querySelector('.pause').onclick = async () => { await api.setAccountPaused(a.deviceId, !a.paused); await refreshAccounts(); };
   li.querySelector('.x').onclick = async () => {
     if (confirm(`Отвязать «${a.label}»?`)) { await api.logoutAccount(a.deviceId); await refreshAccounts(); }
   };
   return li;
+}
+
+// ---- ⋮ popover: ручные оверрайды этапа прогрева (skipSettle / forceBoost) ----
+let overrideMenuEl = null;
+function closeOverrideMenu() {
+  if (overrideMenuEl) { overrideMenuEl.remove(); overrideMenuEl = null; }
+  document.removeEventListener('click', closeOverrideMenu);
+}
+function openOverrideMenu(anchor, a) {
+  if (overrideMenuEl) { closeOverrideMenu(); return; } // повторный клик по ⋮ — закрыть
+  const menu = document.createElement('div');
+  menu.className = 'override-menu';
+  const item = (icon, text, on) =>
+    `<button class="ovr-item" data-on="${on ? '1' : '0'}">` +
+    `<span class="ovr-check">${on ? '✓' : ''}</span><span>${icon} ${text}</span></button>`;
+  menu.innerHTML =
+    item('⏭', 'Пропустить отлёжку', a.skipSettle) +
+    item('🌍', 'Форсировать буст', a.forceBoost);
+  const btns = menu.querySelectorAll('.ovr-item');
+  btns[0].onclick = async (e) => { e.stopPropagation(); closeOverrideMenu(); await api.setOverride(a.deviceId, { skipSettle: !a.skipSettle }); await refreshAccounts(); };
+  btns[1].onclick = async (e) => { e.stopPropagation(); closeOverrideMenu(); await api.setOverride(a.deviceId, { forceBoost: !a.forceBoost }); await refreshAccounts(); };
+  document.body.appendChild(menu);
+  const r = anchor.getBoundingClientRect();
+  // разместить под кнопкой, прижав правый край к кнопке; не вылезать за окно
+  const top = Math.min(r.bottom + 4, window.innerHeight - menu.offsetHeight - 4);
+  const left = Math.max(4, Math.min(r.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 4));
+  menu.style.top = `${top}px`;
+  menu.style.left = `${left}px`;
+  overrideMenuEl = menu;
+  // закрытие по клику вне меню (следующий тик, чтобы не поймать текущий клик по ⋮)
+  setTimeout(() => document.addEventListener('click', closeOverrideMenu), 0);
 }
 
 async function doReconnect(a) {

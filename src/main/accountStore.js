@@ -130,6 +130,24 @@ function setPaused(deviceId, value) {
   saveAccounts();
 }
 
+// ручной оверрайд «пропустить отлёжку»: аккаунт греется сразу, минуя settleHours
+// и reloginSettleHours (см. scheduler.isSettled).
+function setSkipSettle(deviceId, value) {
+  const a = get(deviceId);
+  if (!a || !!a.skipSettle === !!value) return;
+  a.skipSettle = !!value;
+  saveAccounts();
+}
+
+// ручной оверрайд «форсировать буст»: аккаунт считается в окне кросс-страна буста
+// независимо от дня (дневная норма/ramp остаются по реальному дню; см. scheduler.inBoostWindow).
+function setForceBoost(deviceId, value) {
+  const a = get(deviceId);
+  if (!a || !!a.forceBoost === !!value) return;
+  a.forceBoost = !!value;
+  saveAccounts();
+}
+
 // daily send counter with rollover
 function ensureDaily(a) {
   const t = todayStr();
@@ -282,6 +300,8 @@ module.exports = {
   setConnected,
   setSessionLost,
   setPaused,
+  setSkipSettle,
+  setForceBoost,
   bumpSent,
   bumpReceived,
   bumpHistory,

@@ -63,13 +63,20 @@ function effectiveCap(acc, cfg) {
 }
 
 // ---- страна-центричные правила прогрева ----
+// Аккаунт в «окне буста» = последние два дня прогрева (дни 9 и 10 при warmDays=10)
+// ИЛИ ручной оверрайд forceBoost (форсируем кросс-страна общение независимо от дня).
+// ВАЖНО: forceBoost НЕ подделывает день — дневная норма/ramp остаются привязаны к
+// реальному дню (dayOf), это лишь допускает кросс-страна пары в окне буста.
+function inBoostWindow(acc, cfg) {
+  return !!acc.forceBoost || dayOf(acc) >= (cfg.warmDays || 10) - 1;
+}
+
 // Подбор пары по стране: своя группа — всегда; кросс-страна — только если включён
-// буст И ОБА участника в последних двух днях прогрева (дни 9 и 10 при warmDays=10).
+// буст И ОБА участника в окне буста (дни 9–10 либо forceBoost).
 function canPair(a, b, cfg) {
   if (a.groupId === b.groupId) return true;
   if (!cfg.crossCountryBoost) return false;
-  const last2 = (d) => d >= (cfg.warmDays || 10) - 1; // окно последних двух дней
-  return last2(dayOf(a)) && last2(dayOf(b));
+  return inBoostWindow(a, cfg) && inBoostWindow(b, cfg);
 }
 
 // аккаунт «прогрет» на СЛЕДУЮЩИЙ день после полного срока (по умолчанию день 11 при
@@ -110,6 +117,7 @@ function pacedAllowance(acc, cfg) {
 // Дважды: (a) после добавления (settleHours) и, если был ре-логин, (b) после него
 // (reloginSettleHours) — WhatsApp держит ~6ч спам-лимит после повторного входа.
 function isSettled(acc, cfg) {
+  if (acc.skipSettle) return true; // ручной оверрайд: пропустить отлёжку — греем сразу
   const h = Math.max(0, cfg.settleHours || 0);
   if (h > 0 && Date.now() - (acc.addedAt || 0) < h * 3600000) return false;
   const rh = Math.max(0, cfg.reloginSettleHours || 0);
@@ -123,8 +131,7 @@ function isSettled(acc, cfg) {
 function phaseOf(acc, cfg) {
   if (isReadyDay(acc, cfg)) return 'ready';
   if (!isSettled(acc, cfg)) return 'settle';
-  const day = dayOf(acc);
-  if (cfg.crossCountryBoost && day >= (cfg.warmDays || 10) - 1) return 'boost';
+  if (cfg.crossCountryBoost && inBoostWindow(acc, cfg)) return 'boost';
   return 'intra';
 }
 
@@ -454,11 +461,13 @@ function stats() {
   const accounts = store.all();
   const perAccount = accounts.map((a) => {
     const day = store.daysWarming(a);
-    const boostActive = !!cfg.crossCountryBoost && day >= (cfg.warmDays || 10) - 1 && !isReadyDay(a, cfg);
+    const boostActive = !!cfg.crossCountryBoost && inBoostWindow(a, cfg) && !isReadyDay(a, cfg);
     return {
       deviceId: a.deviceId,
       label: a.label,
       days: day,
+      skipSettle: !!a.skipSettle,
+      forceBoost: !!a.forceBoost,
       chats: store.partnersOf(a.deviceId).length,
       sent: a.sentTotal || 0,
       received: a.receivedTotal || 0,
@@ -491,6 +500,7 @@ module.exports = {
   // экспорт чистых функций для boot.accountsView() и тестов (единый источник
   // истины по фазам/отлёжке — чтобы boot.js не дублировал логику)
   phaseOf,
+  inBoostWindow,
   maxPartners,
   connectedInGroup,
   __canPair: canPair,

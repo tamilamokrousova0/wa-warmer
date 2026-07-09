@@ -124,6 +124,19 @@ function register(app, ctx) {
     return { ok: true };
   });
 
+  // ручные оверрайды этапа прогрева: пропустить отлёжку / форсировать буст.
+  // Применяем только те ключи, что реально пришли в теле (частичный патч).
+  app.post('/api/account/override', requireSession, async (req, reply) => {
+    const { deviceId, skipSettle, forceBoost } = req.body || {};
+    if (!deviceId || !store.get(deviceId)) {
+      return reply.code(400).send({ error: 'unknown deviceId' });
+    }
+    if (skipSettle !== undefined) store.setSkipSettle(deviceId, skipSettle);
+    if (forceBoost !== undefined) store.setForceBoost(deviceId, forceBoost);
+    pushAccounts();
+    return { ok: true };
+  });
+
   app.post('/api/account/reconnect', requireSession, async (req) => {
     const { deviceId } = req.body || {};
     try { await client.reconnect(deviceId); } catch { /* ignore */ }
