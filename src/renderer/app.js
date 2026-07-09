@@ -52,8 +52,13 @@ function fmtDuration(ms) {
 }
 // what happens next for this account, and when
 function nextActionText(a) {
-  if (!a.connected || a.paused) return '';
   const now = Date.now();
+  // информационный отсчёт снятия ~6-часового ограничения WhatsApp после логаута —
+  // показываем даже на паузе/офлайн (номер обычно ставят на паузу именно из-за этого)
+  if (a.restrictionUntil && a.restrictionUntil > now) {
+    return `⛔ ограничение WhatsApp: ещё ${fmtDuration(a.restrictionUntil - now)}`;
+  }
+  if (!a.connected || a.paused) return '';
   // skipSettle: отлёжка обнулена в accountsView (settleUntil=0). Если аккаунт
   // ещё был бы в окне отлёжки (по settleHours от addedAt) — сообщаем, что она пропущена.
   if (a.skipSettle) {
@@ -202,6 +207,7 @@ async function loadConfig() {
   $('maxDelayMin').value = c.maxDelayMin;
   $('settleHours').value = c.settleHours;
   $('reloginSettleHours').value = c.reloginSettleHours;
+  $('restrictionHours').value = c.restrictionHours;
   $('dailyCap').value = c.dailyCap;
   $('maxConcurrent').value = c.maxConcurrent;
   $('daysPerPartner').value = c.daysPerPartner;
@@ -220,6 +226,7 @@ function readConfig() {
     maxDelayMin: Math.max(1, +$('maxDelayMin').value || 7),
     settleHours: Math.max(0, +$('settleHours').value || 0),
     reloginSettleHours: Math.max(0, +$('reloginSettleHours').value || 0),
+    restrictionHours: Math.max(0, +$('restrictionHours').value || 0),
     dailyCap: Math.max(1, +$('dailyCap').value || 30),
     maxConcurrent: Math.min(24, Math.max(1, +$('maxConcurrent').value || 4)),
     daysPerPartner: Math.max(1, +$('daysPerPartner').value || 2),
@@ -237,7 +244,7 @@ async function saveConfig() {
   await api.setConfig(readConfig());
 }
 ['minDelayMin', 'maxDelayMin', 'dailyCap', 'maxConcurrent', 'rampUpDays', 'activeStart', 'activeEnd',
-  'daysPerPartner', 'settleHours', 'reloginSettleHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
+  'daysPerPartner', 'settleHours', 'reloginSettleHours', 'restrictionHours', 'imagesEnabled', 'linksEnabled', 'voiceEnabled', 'textNoise']
   .forEach((id) => $(id).addEventListener('change', saveConfig));
 
 // ---------- groups (per-group proxy; saving restarts changed engines) ----------

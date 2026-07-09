@@ -108,7 +108,7 @@ function setConnected(deviceId, connected, jid, phone) {
   const a = get(deviceId);
   if (!a) return;
   a.connected = connected;
-  if (connected) a.sessionLost = false;
+  if (connected) { a.sessionLost = false; a.loggedOutAt = 0; } // восстановился → сбрасываем метку логаута
   if (jid) a.jid = jid;
   if (phone) a.phone = phone;
   saveAccounts();
@@ -119,6 +119,10 @@ function setSessionLost(deviceId, value) {
   const a = get(deviceId);
   if (!a || a.sessionLost === value) return;
   a.sessionLost = value;
+  // Реальный логаут (движок потерял сессию — обычно после ~6-часового
+  // спам-ограничения WhatsApp) → фиксируем момент для информационного отсчёта.
+  // Обычные обрывы прокси сюда НЕ попадают (там сессия остаётся, sessionLost=false).
+  a.loggedOutAt = value ? Date.now() : 0;
   saveAccounts();
 }
 
@@ -222,6 +226,7 @@ const DEFAULT_CONFIG = {
   textNoise: true, // append invisible random chars so each message is byte-unique
   settleHours: 12, // "отлёжка": wait N hours after linking before an account warms
   reloginSettleHours: 6, // "отлёжка" после ре-логина: пауза, пока WhatsApp снимет ~6ч спам-лимит
+  restrictionHours: 6, // информационный отсчёт после логаута: сколько ждать снятия ограничения WhatsApp
   dailyCap: 10, // outgoing messages per account per day (ramp: 2→3→4→6→7→9→10)
   rampUpDays: 7, // grow the daily cap gradually over the first N days
   daysPerPartner: 2, // add one new chat partner every N days (day 1 = 1 partner)
