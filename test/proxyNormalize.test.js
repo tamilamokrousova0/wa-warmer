@@ -26,3 +26,13 @@ test('validate normalizes first and returns the normalized proxy', () => {
   assert.strictEqual(v.proxy, 'socks5://127.0.0.1:3001');
   assert.ok(!v.error);
 });
+
+test('isLocalProxy detects 127.0.0.1/localhost/::1 (incl. with auth), not remote hosts', () => {
+  for (const p of ['socks5://127.0.0.1:60000', 'socks5://user:pass@127.0.0.1:60000',
+    'socks5://localhost:60000', 'http://[::1]:8080', '127.0.0.1:3001']) {
+    assert.ok(proxyTest.isLocalProxy(proxyTest.normalizeProxy(p)), `${p} should be local`);
+  }
+  for (const p of ['socks5://1.2.3.4:1080', 'http://proxy.example.com:8080']) {
+    assert.ok(!proxyTest.isLocalProxy(p), `${p} should be remote`);
+  }
+});

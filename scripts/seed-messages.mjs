@@ -5,6 +5,10 @@
 // нужной-форме фрагментов) и двухслотового «приветствие + вопрос». Затем
 // дедуплицируются и обрезаются до TARGET. Медиа общие — здесь только тексты.
 //
+// Баланс: двухслотовые приветствия (greet) намеренно ограничены ~20 вопросами на
+// 12 обращений (≈240 строк, <55% от 500), остальное — утверждения, приглашения,
+// статусы и вопросы, чтобы переписка читалась менее однообразно.
+//
 // Запуск: node scripts/seed-messages.mjs   (или npm run seed-messages)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,11 +30,10 @@ const UA = () => {
   const out = [];
   const openers = ['Привіт', 'Привіт-привіт', 'Доброго ранку', 'Добрий день', 'Доброго вечора', 'Хей', 'Слухай', 'Здоров',
     'Йо', 'Вітаю', 'Гей', 'Привітик'];
+  // сокращено до 20 вопросов, чтобы двухслотовые приветствия не доминировали
   const questions = ['як ти?', 'як справи?', 'як настрій?', 'як воно?', 'що нового?', 'що робиш?', 'все добре?',
     'як день пройшов?', 'які плани на вечір?', 'ти вже пообідав?', 'каву будеш?', 'як робота?', 'що поробляєш?',
-    'давно тебе не чув, як ти?', 'ти на зв’язку?', 'ще не спиш?', 'як настрій сьогодні?', 'що цікавого?', 'як вихідні?', 'ти вдома?',
-    'багато сьогодні роботи?', 'як сам?', 'як здоров’я?', 'які плани на завтра?', 'вже прокинувся?', 'як тобі погода?',
-    'як робота йде?', 'що плануєш робити?', 'як настрій, бадьорий?', 'давно не бачились, як життя?'];
+    'ти на зв’язку?', 'ще не спиш?', 'що цікавого?', 'як вихідні?', 'ти вдома?', 'як сам?', 'які плани на завтра?'];
   out.push(...greet(openers, questions));
   out.push('Привіт!', 'Доброго ранку!', 'Добрий день!', 'Доброго вечора!', 'На добраніч!',
     'Дякую!', 'Дуже дякую!', 'Нема за що.', 'Будь ласка.', 'Вибач, що пізно відповідаю.',
@@ -39,7 +42,10 @@ const UA = () => {
     'Побачимось незабаром!', 'До зустрічі!', 'Гарного дня!', 'Гарного вечора!', 'Бережи себе.',
     'Тримайся!', 'Наберу тебе пізніше.', 'Передзвоню трохи згодом.', 'Радий тебе чути.', 'Скучив за тобою.',
     'П’ю каву.', 'Тільки прокинувся.', 'Ще не снідав.', 'Зараз на роботі.', 'Трохи втомився.',
-    'Нарешті вихідний.', 'Відпочиваю вдома.', 'Сьогодні багато справ.', 'Сонце світить, класно.', 'Люблю такі дні.');
+    'Нарешті вихідний.', 'Відпочиваю вдома.', 'Сьогодні багато справ.', 'Сонце світить, класно.', 'Люблю такі дні.',
+    'Гарно провів день.', 'Трохи погуляв.', 'Зробив усі справи.', 'Сьогодні був продуктивний день.', 'Просто відпочиваю.',
+    'Дивлюсь серіал.', 'Слухаю музику.', 'Читаю книжку.', 'Готую вечерю.', 'Вийшов прогулятися.',
+    'Сиджу вдома.', 'Планую лягти раніше.');
   out.push(...cross(['Хочеш ', 'Може, разом ', 'Давай '], ['погуляти', 'прогулятися', 'зустрітися', 'зідзвонитися', 'випити кави',
     'пообідати', 'подивитися фільм', 'трохи пройтися', 'відпочити', 'сходити на каву', 'посидіти в кафе', 'зробити перерву'], '?'));
   out.push(...cross(['Мені треба ще ', 'Маю сьогодні ', 'Хочу ще '], ['попрацювати', 'відпочити', 'поспати', 'зробити покупки',
@@ -51,6 +57,24 @@ const UA = () => {
   out.push(...cross(['Сьогодні '], ['трохи втомився', 'гарний настрій', 'багато справ', 'нічого особливого',
     'все спокійно', 'важкий день', 'приємний день', 'хочеться відпочити', 'на роботі до вечора', 'вихідний, відпочиваю'], '.'));
   out.push(...cross(['Як там ', 'Ну як '], ['робота?', 'справи?', 'сім’я?', 'настрій?', 'погода у вас?', 'вихідні минули?', 'новий проєкт?', 'здоров’я?'], ''));
+  // статусы «где я сейчас»
+  out.push(...cross(['Я зараз ', 'Досі ', 'Ще '], ['на роботі', 'вдома', 'в дорозі', 'на зустрічі', 'зайнятий',
+    'вільний', 'у місті', 'на прогулянці'], '.'));
+  // планы/приглашения (совместное будущее)
+  out.push(...cross(['Може, ', 'Давай '], ['зустрінемось завтра', 'зідзвонимось увечері', 'сходимо на каву',
+    'пообідаємо разом', 'подивимось фільм', 'прогуляємось містом', 'зробимо перерву', 'відпочинемо трохи'], '?'));
+  // погода (безличные наречия/предикативы)
+  out.push(...cross(['Сьогодні надворі ', 'Зараз на вулиці '], ['тепло', 'холодно', 'сонячно', 'хмарно', 'вітряно',
+    'ясно', 'прохолодно', 'справжня спека'], '.'));
+  // благодарности
+  out.push(...cross(['Дякую за ', 'Дякую тобі за '], ['допомогу', 'пораду', 'підтримку', 'розмову', 'запрошення',
+    'увагу', 'зустріч', 'подарунок'], '!'));
+  // вопросы о планах
+  out.push(...cross(['Що плануєш ', 'Що робитимеш '], ['сьогодні?', 'завтра?', 'на вихідних?', 'увечері?',
+    'після роботи?', 'на канікулах?', 'у неділю?', 'завтра вранці?'], ''));
+  // мнения
+  out.push(...cross(['Думаю, ', 'Мабуть, '], ['так буде краще', 'варто зустрітися', 'це гарна ідея', 'треба відпочити',
+    'усе вийде', 'ще встигнемо'], '.'));
   return out;
 };
 
@@ -61,10 +85,8 @@ const DE = () => {
     'Moin', 'Grüß dich', 'Hallöchen', 'Hey du'];
   const questions = ['wie geht’s?', 'wie geht es dir?', 'alles gut?', 'was gibt’s Neues?', 'was machst du gerade?',
     'wie war dein Tag?', 'was hast du heute Abend vor?', 'hast du schon gegessen?', 'magst du einen Kaffee?', 'wie läuft die Arbeit?',
-    'alles in Ordnung?', 'lange nichts gehört, wie geht’s?', 'bist du erreichbar?', 'schon wach?', 'wie ist die Stimmung heute?',
-    'was gibt’s bei dir?', 'wie war das Wochenende?', 'bist du zu Hause?', 'viel zu tun?', 'schon Feierabend?',
-    'wie geht’s der Familie?', 'alles fit?', 'was machst du morgen?', 'schon Pläne fürs Wochenende?', 'wie ist das Wetter bei dir?',
-    'hast du gut geschlafen?', 'läuft alles?', 'was steht heute an?', 'alles ruhig bei dir?', 'lange her, wie läuft’s?'];
+    'alles in Ordnung?', 'bist du erreichbar?', 'schon wach?', 'was gibt’s bei dir?', 'wie war das Wochenende?',
+    'bist du zu Hause?', 'viel zu tun?', 'schon Feierabend?', 'alles fit?', 'was machst du morgen?'];
   out.push(...greet(openers, questions));
   out.push('Hallo!', 'Guten Morgen!', 'Guten Tag!', 'Guten Abend!', 'Gute Nacht!',
     'Danke!', 'Vielen Dank!', 'Gern geschehen.', 'Kein Problem.', 'Entschuldige die späte Antwort.',
@@ -73,7 +95,10 @@ const DE = () => {
     'Bis bald!', 'Wir sehen uns!', 'Schönen Tag noch!', 'Schönen Abend!', 'Pass auf dich auf.',
     'Bleib gesund!', 'Ich rufe dich später an.', 'Melde mich gleich.', 'Schön, von dir zu hören.', 'Ich habe an dich gedacht.',
     'Ich trinke gerade Kaffee.', 'Bin gerade aufgestanden.', 'Ich habe noch nicht gefrühstückt.', 'Ich bin gerade bei der Arbeit.', 'Ich bin ein bisschen müde.',
-    'Endlich Feierabend.', 'Ich entspanne mich zu Hause.', 'Heute ist viel zu tun.', 'Die Sonne scheint, super.', 'Ich mag solche Tage.');
+    'Endlich Feierabend.', 'Ich entspanne mich zu Hause.', 'Heute ist viel zu tun.', 'Die Sonne scheint, super.', 'Ich mag solche Tage.',
+    'Der Tag war schön.', 'Ich habe alles erledigt.', 'Heute war es produktiv.', 'Ich ruhe mich einfach aus.', 'Ich schaue eine Serie.',
+    'Ich höre Musik.', 'Ich lese ein Buch.', 'Ich koche gerade Abendessen.', 'Ich gehe eine Runde spazieren.', 'Ich bleibe heute zu Hause.',
+    'Ich gehe früh ins Bett.', 'Es war ein langer Tag.');
   out.push(...cross(['Wollen wir ', 'Sollen wir ', 'Wie wäre es, wenn wir '], ['einen Kaffee trinken', 'spazieren gehen',
     'uns treffen', 'telefonieren', 'zusammen essen', 'einen Film schauen', 'kurz rausgehen', 'etwas unternehmen',
     'uns morgen sehen', 'ins Café gehen', 'eine Pause machen', 'uns am Wochenende treffen'], '?'));
@@ -87,6 +112,24 @@ const DE = () => {
     'ist alles ruhig', 'war ein langer Tag', 'ist ein schöner Tag', 'will ich mich ausruhen', 'arbeite ich bis abends', 'habe ich frei'], '.'));
   out.push(...cross(['Wie ist ', 'Und wie ist '], ['die Arbeit?', 'die Stimmung?', 'die Familie?', 'das Wetter bei euch?',
     'dein Tag?', 'das Wochenende gelaufen?', 'das neue Projekt?', 'die Gesundheit?'], ''));
+  // статусы «где я сейчас»
+  out.push(...cross(['Ich bin gerade ', 'Ich bin noch ', 'Ich bin schon '], ['bei der Arbeit', 'zu Hause', 'unterwegs',
+    'im Büro', 'beschäftigt', 'fertig', 'in der Stadt', 'draußen'], '.'));
+  // планы/приглашения
+  out.push(...cross(['Sollen wir ', 'Wollen wir '], ['uns morgen treffen', 'später telefonieren', 'gemeinsam kochen',
+    'etwas trinken gehen', 'ins Kino gehen', 'einen Spaziergang machen', 'zusammen Mittag essen', 'am Wochenende grillen'], '?'));
+  // погода
+  out.push(...cross(['Draußen ist es heute ', 'Bei uns ist es gerade '], ['warm', 'kalt', 'sonnig', 'bewölkt', 'windig',
+    'neblig', 'regnerisch', 'schön'], '.'));
+  // благодарности
+  out.push(...cross(['Danke für ', 'Vielen Dank für '], ['die Hilfe', 'den Rat', 'die Unterstützung', 'das Gespräch',
+    'die Einladung', 'deine Zeit', 'die Nachricht', 'das Treffen'], '!'));
+  // вопросы о планах
+  out.push(...cross(['Was hast du ', 'Was hast du eigentlich '], ['heute vor?', 'morgen vor?', 'am Wochenende vor?',
+    'heute Abend vor?', 'nach der Arbeit vor?', 'in den Ferien vor?'], ''));
+  // мнения
+  out.push(...cross(['Ich glaube, ', 'Ich denke, '], ['das ist eine gute Idee', 'wir sollten uns treffen',
+    'das wird schon klappen', 'ich brauche eine Pause', 'das reicht für heute', 'wir schaffen das'], '.'));
   return out;
 };
 
@@ -97,9 +140,7 @@ const PL = () => {
     'Joł', 'Elo', 'Cześć cześć', 'Hej hej'];
   const questions = ['jak się masz?', 'co słychać?', 'jak leci?', 'co u ciebie?', 'co nowego?', 'co robisz?', 'wszystko w porządku?',
     'jak minął dzień?', 'jakie masz plany na wieczór?', 'jadłeś już coś?', 'masz ochotę na kawę?', 'jak w pracy?', 'co porabiasz?',
-    'dawno cię nie słyszałem, jak się masz?', 'jesteś pod telefonem?', 'jeszcze nie śpisz?', 'jaki masz dziś humor?', 'co ciekawego?', 'jak weekend?', 'jesteś w domu?',
-    'dużo dziś pracy?', 'jak zdrowie?', 'co u rodziny?', 'jakie plany na jutro?', 'już wstałeś?', 'jak pogoda u ciebie?',
-    'jak praca idzie?', 'co planujesz?', 'wszystko spokojnie?', 'kopę lat, jak życie?'];
+    'jesteś pod telefonem?', 'jeszcze nie śpisz?', 'co ciekawego?', 'jak weekend?', 'jesteś w domu?', 'dużo dziś pracy?', 'jakie plany na jutro?'];
   out.push(...greet(openers, questions));
   out.push('Cześć!', 'Dzień dobry!', 'Dobry wieczór!', 'Dobranoc!', 'Do zobaczenia!',
     'Dziękuję!', 'Wielkie dzięki!', 'Nie ma za co.', 'Proszę bardzo.', 'Przepraszam za późną odpowiedź.',
@@ -108,7 +149,10 @@ const PL = () => {
     'Do zobaczenia wkrótce!', 'Na razie!', 'Miłego dnia!', 'Miłego wieczoru!', 'Uważaj na siebie.',
     'Trzymaj się!', 'Zadzwonię później.', 'Odezwę się niedługo.', 'Miło cię słyszeć.', 'Myślałem o tobie.',
     'Piję kawę.', 'Dopiero wstałem.', 'Jeszcze nie jadłem śniadania.', 'Jestem teraz w pracy.', 'Jestem trochę zmęczony.',
-    'Nareszcie wolne.', 'Odpoczywam w domu.', 'Dziś dużo do zrobienia.', 'Słońce świeci, super.', 'Lubię takie dni.');
+    'Nareszcie wolne.', 'Odpoczywam w domu.', 'Dziś dużo do zrobienia.', 'Słońce świeci, super.', 'Lubię takie dni.',
+    'Dzień był udany.', 'Załatwiłem wszystko.', 'Dziś było produktywnie.', 'Po prostu odpoczywam.', 'Oglądam serial.',
+    'Słucham muzyki.', 'Czytam książkę.', 'Robię teraz kolację.', 'Idę się przejść.', 'Zostaję dziś w domu.',
+    'Idę dziś wcześniej spać.', 'To był długi dzień.');
   out.push(...cross(['Masz ochotę na ', 'Może wyskoczymy na '], ['kawę', 'herbatę', 'spacer', 'obiad', 'krótką rozmowę',
     'wspólny film', 'kawę na mieście', 'coś słodkiego', 'szybki spacer', 'wieczór w kinie', 'lunch', 'małą przerwę'], '?'));
   out.push(...cross(['Chcesz ', 'Może chcesz ', 'Masz ochotę '], ['pogadać', 'zadzwonić', 'się spotkać', 'wyjść na spacer',
@@ -122,6 +166,23 @@ const PL = () => {
   out.push(...cross(['Dzisiaj '], ['jestem trochę zmęczony', 'mam dobry humor', 'dużo do zrobienia', 'nic szczególnego',
     'wszystko spokojnie', 'był długi dzień', 'jest ładny dzień', 'chcę odpocząć', 'pracuję do wieczora', 'mam wolne'], '.'));
   out.push(...cross(['Jak ', 'A jak '], ['praca?', 'nastrój?', 'rodzina?', 'pogoda u was?', 'minął dzień?', 'weekend?', 'nowy projekt?', 'zdrowie?'], ''));
+  // статусы «где я сейчас»
+  out.push(...cross(['Jestem teraz ', 'Jestem jeszcze ', 'Jestem już '], ['w pracy', 'w domu', 'w drodze', 'w biurze',
+    'zajęty', 'wolny', 'w mieście', 'na mieście'], '.'));
+  // планы/приглашения
+  out.push(...cross(['Masz ochotę ', 'Chcesz '], ['się spotkać jutro', 'później zadzwonić', 'wyjść na kawę',
+    'zjeść coś razem', 'obejrzeć film', 'pójść na spacer', 'zrobić przerwę', 'spotkać się w weekend'], '?'));
+  // погода
+  out.push(...cross(['Na dworze jest dziś ', 'U nas jest teraz '], ['ciepło', 'zimno', 'słonecznie', 'pochmurno',
+    'wietrznie', 'mglisto', 'deszczowo', 'pięknie'], '.'));
+  // благодарности
+  out.push(...cross(['Dziękuję za ', 'Wielkie dzięki za '], ['pomoc', 'radę', 'wsparcie', 'rozmowę', 'zaproszenie',
+    'twój czas', 'wiadomość', 'spotkanie'], '!'));
+  // вопросы о планах
+  out.push(...cross(['Co planujesz ', 'Co robisz '], ['dzisiaj?', 'jutro?', 'w weekend?', 'wieczorem?', 'po pracy?', 'w wakacje?'], ''));
+  // мнения
+  out.push(...cross(['Myślę, że ', 'Wydaje mi się, że '], ['to dobry pomysł', 'powinniśmy się spotkać', 'wszystko się uda',
+    'przyda się przerwa', 'na dziś wystarczy', 'damy radę'], '.'));
   return out;
 };
 
@@ -132,9 +193,7 @@ const EN = () => {
     'Hi there', 'Heya', 'Alright', 'Evening'];
   const questions = ['how are you?', 'how’s it going?', 'how have you been?', 'what’s new?', 'what are you up to?',
     'everything okay?', 'how was your day?', 'any plans tonight?', 'have you eaten yet?', 'fancy a coffee?', 'how’s work?', 'what are you doing?',
-    'long time no chat, how are you?', 'are you around?', 'still awake?', 'how’s your mood today?', 'anything interesting?', 'how was your weekend?', 'are you home?', 'busy day?',
-    'how’s the family?', 'all good?', 'what are you doing tomorrow?', 'any plans for the weekend?', 'already up?', 'how’s the weather there?',
-    'how’s everything?', 'what have you got planned?', 'all quiet your side?', 'long time, how’s life?'];
+    'are you around?', 'still awake?', 'anything interesting?', 'how was your weekend?', 'are you home?', 'busy day?', 'all good?', 'how’s the family?'];
   out.push(...greet(openers, questions));
   out.push('Hi!', 'Good morning!', 'Good afternoon!', 'Good evening!', 'Good night!',
     'Thanks!', 'Thank you so much!', 'You’re welcome.', 'No problem.', 'Sorry for the late reply.',
@@ -143,7 +202,10 @@ const EN = () => {
     'See you soon!', 'Take care!', 'Have a nice day!', 'Have a good evening!', 'Look after yourself.',
     'Stay well!', 'I’ll call you later.', 'I’ll message you soon.', 'Good to hear from you.', 'I was thinking about you.',
     'I’m having coffee.', 'Just got up.', 'I haven’t had breakfast yet.', 'I’m at work right now.', 'I’m a bit tired.',
-    'Finally, a day off.', 'Just relaxing at home.', 'Lots to do today.', 'The sun is out, lovely.', 'I love days like this.');
+    'Finally, a day off.', 'Just relaxing at home.', 'Lots to do today.', 'The sun is out, lovely.', 'I love days like this.',
+    'It was a good day.', 'I got everything done.', 'Today was productive.', 'Just taking it easy.', 'I’m watching a series.',
+    'I’m listening to music.', 'I’m reading a book.', 'I’m making dinner now.', 'Going out for a walk.', 'Staying in today.',
+    'Having an early night.', 'It’s been a long day.');
   out.push(...cross(['Do you want to ', 'Shall we ', 'How about we ', 'Fancy heading out to '], ['grab a coffee', 'go for a walk',
     'meet up', 'have a call', 'have lunch', 'watch a film', 'step out for a bit', 'do something', 'meet tomorrow', 'catch up', 'sit in a café', 'take a break'], '?'));
   out.push(...cross(['I still need to ', 'I have to ', 'I want to '], ['work', 'do some shopping', 'get some sleep', 'make a call',
@@ -154,6 +216,26 @@ const EN = () => {
   out.push(...cross(['Today '], ['I’m a bit tired', 'I’m in a good mood', 'there’s a lot to do', 'nothing much is going on',
     'everything’s calm', 'has been a long day', 'is a nice day', 'I just want to rest', 'I’m working till the evening', 'I’m off'], '.'));
   out.push(...cross(['How’s ', 'And how’s '], ['work?', 'your mood?', 'the family?', 'the weather over there?', 'your day going?', 'your weekend been?', 'the new project?', 'your health?'], ''));
+  // статусы «где я сейчас»
+  out.push(...cross(['I’m currently ', 'I’m still ', 'I’m already '], ['at work', 'at home', 'on my way', 'in the office',
+    'busy', 'free', 'in town', 'out and about'], '.'));
+  // планы/приглашения ("Shall we …?" — вопрос; "Let’s …." — предложение, без «?»)
+  const enPlans = ['meet up tomorrow', 'call later', 'get lunch', 'have dinner together',
+    'watch a series', 'go for a stroll', 'take a short break', 'meet at the weekend'];
+  out.push(...cross(['Shall we '], enPlans, '?'));
+  out.push(...cross(['Let’s '], enPlans, '.'));
+  // погода
+  out.push(...cross(['It’s ', 'Outside it’s '], ['warm today', 'cold today', 'sunny today', 'cloudy today', 'windy today',
+    'foggy today', 'rainy today', 'lovely today'], '.'));
+  // благодарности
+  out.push(...cross(['Thanks for ', 'Thank you for '], ['the help', 'the advice', 'the support', 'the chat', 'the invite',
+    'your time', 'the message', 'the meeting'], '!'));
+  // вопросы о планах
+  out.push(...cross(['What are you planning ', 'What are you up to '], ['today?', 'tomorrow?', 'this weekend?', 'tonight?',
+    'after work?', 'over the holidays?'], ''));
+  // мнения
+  out.push(...cross(['I think ', 'I reckon '], ['that’s a good idea', 'we should meet up', 'it’ll work out',
+    'I need a break', 'that’s enough for today', 'we’ll manage'], '.'));
   return out;
 };
 
@@ -175,10 +257,12 @@ for (const [groupId, gen] of Object.entries(LANGS)) {
     continue;
   }
   const lines = uniq.slice(0, TARGET);
+  // доля двухслотовых приветствий «обращение, вопрос?» (диагностика баланса)
+  const greetings = lines.filter((l) => /^[^,]+, .*\?$/.test(l) && !/^(Може|Може, разом)/.test(l)).length;
   const dir = path.join(ROOT, 'content-seed', groupId);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'messages.txt'), lines.join('\n') + '\n');
-  console.log(`[seed] ${groupId}: ${uniq.length} уникальных, записано ${lines.length} -> ${path.relative(ROOT, path.join(dir, 'messages.txt'))}`);
+  console.log(`[seed] ${groupId}: ${uniq.length} уникальных, записано ${lines.length}, приветствий ~${greetings} (${Math.round((greetings / lines.length) * 100)}%) -> ${path.relative(ROOT, path.join(dir, 'messages.txt'))}`);
 }
 if (!ok) process.exit(1);
 console.log('[seed] готово.');

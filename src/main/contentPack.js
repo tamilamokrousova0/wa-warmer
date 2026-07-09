@@ -74,6 +74,29 @@ function seedMessagesIfEmpty(groupId) {
   if (!fs.existsSync(dest)) fs.writeFileSync(dest, MESSAGES_HEADER);
 }
 
+// в общей папке уже есть хотя бы одно изображение?
+function hasImages(dir) {
+  try {
+    return fs.readdirSync(dir).some((f) => IMAGE_EXT.has(path.extname(f).toLowerCase()));
+  } catch { return false; }
+}
+
+// заполняем shared/images из репозиторного content-seed/shared/images, только если
+// у пользователя там ещё нет картинок; существующие файлы никогда не трогаем.
+function seedImagesIfEmpty() {
+  const dest = paths.sharedImagesDir();
+  if (hasImages(dest)) return;
+  const seedDir = path.join(__dirname, '..', '..', 'content-seed', 'shared', 'images');
+  let files = [];
+  try { files = fs.readdirSync(seedDir); } catch { return; }
+  for (const name of files) {
+    if (!IMAGE_EXT.has(path.extname(name).toLowerCase())) continue;
+    const src = path.join(seedDir, name);
+    const out = path.join(dest, name);
+    try { if (!fs.existsSync(out)) fs.copyFileSync(src, out); } catch { /* best-effort */ }
+  }
+}
+
 function ensure() {
   fs.mkdirSync(paths.contentDir(), { recursive: true });
   migrateLegacyFlatLayout();
@@ -85,6 +108,7 @@ function ensure() {
   for (const d of [paths.sharedImagesDir(), paths.sharedVoiceDir()]) {
     fs.mkdirSync(d, { recursive: true });
   }
+  seedImagesIfEmpty();
 }
 
 function readLines(file) {

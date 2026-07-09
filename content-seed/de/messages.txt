@@ -9,25 +9,15 @@ Hallo, hast du schon gegessen?
 Hallo, magst du einen Kaffee?
 Hallo, wie läuft die Arbeit?
 Hallo, alles in Ordnung?
-Hallo, lange nichts gehört, wie geht’s?
 Hallo, bist du erreichbar?
 Hallo, schon wach?
-Hallo, wie ist die Stimmung heute?
 Hallo, was gibt’s bei dir?
 Hallo, wie war das Wochenende?
 Hallo, bist du zu Hause?
 Hallo, viel zu tun?
 Hallo, schon Feierabend?
-Hallo, wie geht’s der Familie?
 Hallo, alles fit?
 Hallo, was machst du morgen?
-Hallo, schon Pläne fürs Wochenende?
-Hallo, wie ist das Wetter bei dir?
-Hallo, hast du gut geschlafen?
-Hallo, läuft alles?
-Hallo, was steht heute an?
-Hallo, alles ruhig bei dir?
-Hallo, lange her, wie läuft’s?
 Hey, wie geht’s?
 Hey, wie geht es dir?
 Hey, alles gut?
@@ -39,25 +29,15 @@ Hey, hast du schon gegessen?
 Hey, magst du einen Kaffee?
 Hey, wie läuft die Arbeit?
 Hey, alles in Ordnung?
-Hey, lange nichts gehört, wie geht’s?
 Hey, bist du erreichbar?
 Hey, schon wach?
-Hey, wie ist die Stimmung heute?
 Hey, was gibt’s bei dir?
 Hey, wie war das Wochenende?
 Hey, bist du zu Hause?
 Hey, viel zu tun?
 Hey, schon Feierabend?
-Hey, wie geht’s der Familie?
 Hey, alles fit?
 Hey, was machst du morgen?
-Hey, schon Pläne fürs Wochenende?
-Hey, wie ist das Wetter bei dir?
-Hey, hast du gut geschlafen?
-Hey, läuft alles?
-Hey, was steht heute an?
-Hey, alles ruhig bei dir?
-Hey, lange her, wie läuft’s?
 Guten Morgen, wie geht’s?
 Guten Morgen, wie geht es dir?
 Guten Morgen, alles gut?
@@ -69,25 +49,15 @@ Guten Morgen, hast du schon gegessen?
 Guten Morgen, magst du einen Kaffee?
 Guten Morgen, wie läuft die Arbeit?
 Guten Morgen, alles in Ordnung?
-Guten Morgen, lange nichts gehört, wie geht’s?
 Guten Morgen, bist du erreichbar?
 Guten Morgen, schon wach?
-Guten Morgen, wie ist die Stimmung heute?
 Guten Morgen, was gibt’s bei dir?
 Guten Morgen, wie war das Wochenende?
 Guten Morgen, bist du zu Hause?
 Guten Morgen, viel zu tun?
 Guten Morgen, schon Feierabend?
-Guten Morgen, wie geht’s der Familie?
 Guten Morgen, alles fit?
 Guten Morgen, was machst du morgen?
-Guten Morgen, schon Pläne fürs Wochenende?
-Guten Morgen, wie ist das Wetter bei dir?
-Guten Morgen, hast du gut geschlafen?
-Guten Morgen, läuft alles?
-Guten Morgen, was steht heute an?
-Guten Morgen, alles ruhig bei dir?
-Guten Morgen, lange her, wie läuft’s?
 Guten Tag, wie geht’s?
 Guten Tag, wie geht es dir?
 Guten Tag, alles gut?
@@ -99,25 +69,15 @@ Guten Tag, hast du schon gegessen?
 Guten Tag, magst du einen Kaffee?
 Guten Tag, wie läuft die Arbeit?
 Guten Tag, alles in Ordnung?
-Guten Tag, lange nichts gehört, wie geht’s?
 Guten Tag, bist du erreichbar?
 Guten Tag, schon wach?
-Guten Tag, wie ist die Stimmung heute?
 Guten Tag, was gibt’s bei dir?
 Guten Tag, wie war das Wochenende?
 Guten Tag, bist du zu Hause?
 Guten Tag, viel zu tun?
 Guten Tag, schon Feierabend?
-Guten Tag, wie geht’s der Familie?
 Guten Tag, alles fit?
 Guten Tag, was machst du morgen?
-Guten Tag, schon Pläne fürs Wochenende?
-Guten Tag, wie ist das Wetter bei dir?
-Guten Tag, hast du gut geschlafen?
-Guten Tag, läuft alles?
-Guten Tag, was steht heute an?
-Guten Tag, alles ruhig bei dir?
-Guten Tag, lange her, wie läuft’s?
 Guten Abend, wie geht’s?
 Guten Abend, wie geht es dir?
 Guten Abend, alles gut?
@@ -129,25 +89,15 @@ Guten Abend, hast du schon gegessen?
 Guten Abend, magst du einen Kaffee?
 Guten Abend, wie läuft die Arbeit?
 Guten Abend, alles in Ordnung?
-Guten Abend, lange nichts gehört, wie geht’s?
 Guten Abend, bist du erreichbar?
 Guten Abend, schon wach?
-Guten Abend, wie ist die Stimmung heute?
 Guten Abend, was gibt’s bei dir?
 Guten Abend, wie war das Wochenende?
 Guten Abend, bist du zu Hause?
 Guten Abend, viel zu tun?
 Guten Abend, schon Feierabend?
-Guten Abend, wie geht’s der Familie?
 Guten Abend, alles fit?
 Guten Abend, was machst du morgen?
-Guten Abend, schon Pläne fürs Wochenende?
-Guten Abend, wie ist das Wetter bei dir?
-Guten Abend, hast du gut geschlafen?
-Guten Abend, läuft alles?
-Guten Abend, was steht heute an?
-Guten Abend, alles ruhig bei dir?
-Guten Abend, lange her, wie läuft’s?
 Servus, wie geht’s?
 Servus, wie geht es dir?
 Servus, alles gut?
@@ -159,25 +109,15 @@ Servus, hast du schon gegessen?
 Servus, magst du einen Kaffee?
 Servus, wie läuft die Arbeit?
 Servus, alles in Ordnung?
-Servus, lange nichts gehört, wie geht’s?
 Servus, bist du erreichbar?
 Servus, schon wach?
-Servus, wie ist die Stimmung heute?
 Servus, was gibt’s bei dir?
 Servus, wie war das Wochenende?
 Servus, bist du zu Hause?
 Servus, viel zu tun?
 Servus, schon Feierabend?
-Servus, wie geht’s der Familie?
 Servus, alles fit?
 Servus, was machst du morgen?
-Servus, schon Pläne fürs Wochenende?
-Servus, wie ist das Wetter bei dir?
-Servus, hast du gut geschlafen?
-Servus, läuft alles?
-Servus, was steht heute an?
-Servus, alles ruhig bei dir?
-Servus, lange her, wie läuft’s?
 Hi, wie geht’s?
 Hi, wie geht es dir?
 Hi, alles gut?
@@ -189,25 +129,15 @@ Hi, hast du schon gegessen?
 Hi, magst du einen Kaffee?
 Hi, wie läuft die Arbeit?
 Hi, alles in Ordnung?
-Hi, lange nichts gehört, wie geht’s?
 Hi, bist du erreichbar?
 Hi, schon wach?
-Hi, wie ist die Stimmung heute?
 Hi, was gibt’s bei dir?
 Hi, wie war das Wochenende?
 Hi, bist du zu Hause?
 Hi, viel zu tun?
 Hi, schon Feierabend?
-Hi, wie geht’s der Familie?
 Hi, alles fit?
 Hi, was machst du morgen?
-Hi, schon Pläne fürs Wochenende?
-Hi, wie ist das Wetter bei dir?
-Hi, hast du gut geschlafen?
-Hi, läuft alles?
-Hi, was steht heute an?
-Hi, alles ruhig bei dir?
-Hi, lange her, wie läuft’s?
 Na, wie geht’s?
 Na, wie geht es dir?
 Na, alles gut?
@@ -219,25 +149,15 @@ Na, hast du schon gegessen?
 Na, magst du einen Kaffee?
 Na, wie läuft die Arbeit?
 Na, alles in Ordnung?
-Na, lange nichts gehört, wie geht’s?
 Na, bist du erreichbar?
 Na, schon wach?
-Na, wie ist die Stimmung heute?
 Na, was gibt’s bei dir?
 Na, wie war das Wochenende?
 Na, bist du zu Hause?
 Na, viel zu tun?
 Na, schon Feierabend?
-Na, wie geht’s der Familie?
 Na, alles fit?
 Na, was machst du morgen?
-Na, schon Pläne fürs Wochenende?
-Na, wie ist das Wetter bei dir?
-Na, hast du gut geschlafen?
-Na, läuft alles?
-Na, was steht heute an?
-Na, alles ruhig bei dir?
-Na, lange her, wie läuft’s?
 Moin, wie geht’s?
 Moin, wie geht es dir?
 Moin, alles gut?
@@ -249,25 +169,15 @@ Moin, hast du schon gegessen?
 Moin, magst du einen Kaffee?
 Moin, wie läuft die Arbeit?
 Moin, alles in Ordnung?
-Moin, lange nichts gehört, wie geht’s?
 Moin, bist du erreichbar?
 Moin, schon wach?
-Moin, wie ist die Stimmung heute?
 Moin, was gibt’s bei dir?
 Moin, wie war das Wochenende?
 Moin, bist du zu Hause?
 Moin, viel zu tun?
 Moin, schon Feierabend?
-Moin, wie geht’s der Familie?
 Moin, alles fit?
 Moin, was machst du morgen?
-Moin, schon Pläne fürs Wochenende?
-Moin, wie ist das Wetter bei dir?
-Moin, hast du gut geschlafen?
-Moin, läuft alles?
-Moin, was steht heute an?
-Moin, alles ruhig bei dir?
-Moin, lange her, wie läuft’s?
 Grüß dich, wie geht’s?
 Grüß dich, wie geht es dir?
 Grüß dich, alles gut?
@@ -279,25 +189,15 @@ Grüß dich, hast du schon gegessen?
 Grüß dich, magst du einen Kaffee?
 Grüß dich, wie läuft die Arbeit?
 Grüß dich, alles in Ordnung?
-Grüß dich, lange nichts gehört, wie geht’s?
 Grüß dich, bist du erreichbar?
 Grüß dich, schon wach?
-Grüß dich, wie ist die Stimmung heute?
 Grüß dich, was gibt’s bei dir?
 Grüß dich, wie war das Wochenende?
 Grüß dich, bist du zu Hause?
 Grüß dich, viel zu tun?
 Grüß dich, schon Feierabend?
-Grüß dich, wie geht’s der Familie?
 Grüß dich, alles fit?
 Grüß dich, was machst du morgen?
-Grüß dich, schon Pläne fürs Wochenende?
-Grüß dich, wie ist das Wetter bei dir?
-Grüß dich, hast du gut geschlafen?
-Grüß dich, läuft alles?
-Grüß dich, was steht heute an?
-Grüß dich, alles ruhig bei dir?
-Grüß dich, lange her, wie läuft’s?
 Hallöchen, wie geht’s?
 Hallöchen, wie geht es dir?
 Hallöchen, alles gut?
@@ -309,25 +209,15 @@ Hallöchen, hast du schon gegessen?
 Hallöchen, magst du einen Kaffee?
 Hallöchen, wie läuft die Arbeit?
 Hallöchen, alles in Ordnung?
-Hallöchen, lange nichts gehört, wie geht’s?
 Hallöchen, bist du erreichbar?
 Hallöchen, schon wach?
-Hallöchen, wie ist die Stimmung heute?
 Hallöchen, was gibt’s bei dir?
 Hallöchen, wie war das Wochenende?
 Hallöchen, bist du zu Hause?
 Hallöchen, viel zu tun?
 Hallöchen, schon Feierabend?
-Hallöchen, wie geht’s der Familie?
 Hallöchen, alles fit?
 Hallöchen, was machst du morgen?
-Hallöchen, schon Pläne fürs Wochenende?
-Hallöchen, wie ist das Wetter bei dir?
-Hallöchen, hast du gut geschlafen?
-Hallöchen, läuft alles?
-Hallöchen, was steht heute an?
-Hallöchen, alles ruhig bei dir?
-Hallöchen, lange her, wie läuft’s?
 Hey du, wie geht’s?
 Hey du, wie geht es dir?
 Hey du, alles gut?
@@ -339,25 +229,15 @@ Hey du, hast du schon gegessen?
 Hey du, magst du einen Kaffee?
 Hey du, wie läuft die Arbeit?
 Hey du, alles in Ordnung?
-Hey du, lange nichts gehört, wie geht’s?
 Hey du, bist du erreichbar?
 Hey du, schon wach?
-Hey du, wie ist die Stimmung heute?
 Hey du, was gibt’s bei dir?
 Hey du, wie war das Wochenende?
 Hey du, bist du zu Hause?
 Hey du, viel zu tun?
 Hey du, schon Feierabend?
-Hey du, wie geht’s der Familie?
 Hey du, alles fit?
 Hey du, was machst du morgen?
-Hey du, schon Pläne fürs Wochenende?
-Hey du, wie ist das Wetter bei dir?
-Hey du, hast du gut geschlafen?
-Hey du, läuft alles?
-Hey du, was steht heute an?
-Hey du, alles ruhig bei dir?
-Hey du, lange her, wie läuft’s?
 Hallo!
 Guten Morgen!
 Guten Tag!
@@ -398,6 +278,18 @@ Ich entspanne mich zu Hause.
 Heute ist viel zu tun.
 Die Sonne scheint, super.
 Ich mag solche Tage.
+Der Tag war schön.
+Ich habe alles erledigt.
+Heute war es produktiv.
+Ich ruhe mich einfach aus.
+Ich schaue eine Serie.
+Ich höre Musik.
+Ich lese ein Buch.
+Ich koche gerade Abendessen.
+Ich gehe eine Runde spazieren.
+Ich bleibe heute zu Hause.
+Ich gehe früh ins Bett.
+Es war ein langer Tag.
 Wollen wir einen Kaffee trinken?
 Wollen wir spazieren gehen?
 Wollen wir uns treffen?
@@ -498,3 +390,111 @@ So ein schöner Tag heute!
 So ein kalter Tag heute!
 So ein langer Tag heute!
 So ein warmer Tag heute!
+So ein sonniger Tag heute!
+So ein ruhiger Tag heute!
+So ein anstrengender Tag heute!
+So ein angenehmer Tag heute!
+So ein grauer Tag heute!
+So ein herrlicher Tag heute!
+Heute bin ich etwas müde.
+Heute ist gute Laune.
+Heute ist nichts Besonderes.
+Heute ist alles ruhig.
+Heute war ein langer Tag.
+Heute ist ein schöner Tag.
+Heute will ich mich ausruhen.
+Heute arbeite ich bis abends.
+Heute habe ich frei.
+Wie ist die Arbeit?
+Wie ist die Stimmung?
+Wie ist die Familie?
+Wie ist das Wetter bei euch?
+Wie ist dein Tag?
+Wie ist das Wochenende gelaufen?
+Wie ist das neue Projekt?
+Wie ist die Gesundheit?
+Und wie ist die Arbeit?
+Und wie ist die Stimmung?
+Und wie ist die Familie?
+Und wie ist das Wetter bei euch?
+Und wie ist dein Tag?
+Und wie ist das Wochenende gelaufen?
+Und wie ist das neue Projekt?
+Und wie ist die Gesundheit?
+Ich bin gerade zu Hause.
+Ich bin gerade unterwegs.
+Ich bin gerade im Büro.
+Ich bin gerade beschäftigt.
+Ich bin gerade fertig.
+Ich bin gerade in der Stadt.
+Ich bin gerade draußen.
+Ich bin noch bei der Arbeit.
+Ich bin noch zu Hause.
+Ich bin noch unterwegs.
+Ich bin noch im Büro.
+Ich bin noch beschäftigt.
+Ich bin noch fertig.
+Ich bin noch in der Stadt.
+Ich bin noch draußen.
+Ich bin schon bei der Arbeit.
+Ich bin schon zu Hause.
+Ich bin schon unterwegs.
+Ich bin schon im Büro.
+Ich bin schon beschäftigt.
+Ich bin schon fertig.
+Ich bin schon in der Stadt.
+Ich bin schon draußen.
+Sollen wir uns morgen treffen?
+Sollen wir später telefonieren?
+Sollen wir gemeinsam kochen?
+Sollen wir etwas trinken gehen?
+Sollen wir ins Kino gehen?
+Sollen wir einen Spaziergang machen?
+Sollen wir zusammen Mittag essen?
+Sollen wir am Wochenende grillen?
+Wollen wir uns morgen treffen?
+Wollen wir später telefonieren?
+Wollen wir gemeinsam kochen?
+Wollen wir etwas trinken gehen?
+Wollen wir ins Kino gehen?
+Wollen wir einen Spaziergang machen?
+Wollen wir zusammen Mittag essen?
+Wollen wir am Wochenende grillen?
+Draußen ist es heute warm.
+Draußen ist es heute kalt.
+Draußen ist es heute sonnig.
+Draußen ist es heute bewölkt.
+Draußen ist es heute windig.
+Draußen ist es heute neblig.
+Draußen ist es heute regnerisch.
+Draußen ist es heute schön.
+Bei uns ist es gerade warm.
+Bei uns ist es gerade kalt.
+Bei uns ist es gerade sonnig.
+Bei uns ist es gerade bewölkt.
+Bei uns ist es gerade windig.
+Bei uns ist es gerade neblig.
+Bei uns ist es gerade regnerisch.
+Bei uns ist es gerade schön.
+Danke für die Hilfe!
+Danke für den Rat!
+Danke für die Unterstützung!
+Danke für das Gespräch!
+Danke für die Einladung!
+Danke für deine Zeit!
+Danke für die Nachricht!
+Danke für das Treffen!
+Vielen Dank für die Hilfe!
+Vielen Dank für den Rat!
+Vielen Dank für die Unterstützung!
+Vielen Dank für das Gespräch!
+Vielen Dank für die Einladung!
+Vielen Dank für deine Zeit!
+Vielen Dank für die Nachricht!
+Vielen Dank für das Treffen!
+Was hast du heute vor?
+Was hast du morgen vor?
+Was hast du am Wochenende vor?
+Was hast du heute Abend vor?
+Was hast du nach der Arbeit vor?
+Was hast du in den Ferien vor?
