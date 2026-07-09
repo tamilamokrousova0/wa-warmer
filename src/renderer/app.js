@@ -267,6 +267,7 @@ function groupRow(g) {
     <div class="group-info">
       <span class="group-badge grp-${g.id}">${g.label}</span>
       <span class="group-role muted small">${g.country} · ${ROLE_RU[g.role] || g.role}</span>
+      <label class="group-direct small"><input type="checkbox" class="group-direct-cb" /> прямое (без прокси)</label>
     </div>
     <input class="group-proxy" type="text" spellcheck="false" autocomplete="off" placeholder="socks5://user:pass@host:1080" />
     <button class="btn btn-mini group-test">Проверить</button>
@@ -275,11 +276,25 @@ function groupRow(g) {
       <span class="note-pair amber small"></span>
       <span class="note-geo amber small"></span>
     </div>`;
-  div.querySelector('.group-proxy').value = g.proxy || '';
+  const proxyInput = div.querySelector('.group-proxy');
+  proxyInput.value = g.proxy || '';
   // предупреждение «нужно ≥2 номера» рисуется отдельно (updateGroupPairNotes),
   // чтобы пересчитываться вживую при изменении списка аккаунтов
   const resEl = div.querySelector('.group-result');
   const geoEl = div.querySelector('.note-geo');
+  // выбор на группу: прокси или прямое подключение. Пустой прокси = «прямое».
+  const directCb = div.querySelector('.group-direct-cb');
+  const testBtn = div.querySelector('.group-test');
+  const applyDirect = () => {
+    const direct = directCb.checked;
+    proxyInput.disabled = direct;
+    proxyInput.classList.toggle('disabled', direct);
+    testBtn.disabled = direct;
+    if (direct) { resEl.className = 'group-result muted small'; resEl.textContent = 'прямое подключение'; geoEl.textContent = ''; }
+  };
+  directCb.checked = !String(g.proxy || '').trim();
+  applyDirect();
+  directCb.onchange = applyDirect;
   div.querySelector('.group-test').onclick = async (e) => {
     const proxy = div.querySelector('.group-proxy').value.trim();
     resEl.className = 'group-result muted small';
@@ -354,7 +369,8 @@ $('groupsSave').onclick = async () => {
   const rows = [...document.querySelectorAll('#groupsList .group-row')];
   const groups = rows.map((row) => {
     const base = groupsCache.find((x) => x.id === row.dataset.id) || { id: row.dataset.id };
-    return { ...base, proxy: row.querySelector('.group-proxy').value.trim() };
+    const direct = row.querySelector('.group-direct-cb').checked;
+    return { ...base, proxy: direct ? '' : row.querySelector('.group-proxy').value.trim() };
   });
   const btn = $('groupsSave');
   btn.disabled = true;
