@@ -725,6 +725,13 @@ api.onWarmingTick((t) => {
     const g = await api.gowaStatus(); // массив [{id,ready,port},...]
     seedGowa(g);
   } catch { /* ignore */ }
+  // подхватываем ТЕКУЩИЙ статус прогрева: событие warming:state приходит только
+  // в момент старт/стоп, поэтому при загрузке страницы (когда прогрев уже идёт)
+  // без явного запроса панель ошибочно показывала бы «остановлено».
+  try {
+    const s = await api.statsFull();
+    if (s && s.totals) setWarmingState(!!s.totals.running);
+  } catch { /* ignore */ }
   const hist = await api.logHistory();
   hist.forEach((l) => appendLog(l));
 })();
