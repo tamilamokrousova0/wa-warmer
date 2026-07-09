@@ -49,6 +49,24 @@ function curl(args, timeoutMs = 30000) {
   });
 }
 
+// GOWA/whatsmeow отдаёт прокси ДОМЕН WhatsApp (remote DNS). Чтобы проверка
+// повторяла реальный коннект движка (а не резолвила домен локально и не давала
+// ложный «ОК»), для socks5 принудительно берём socks5h. http/https/socks5h уже
+// шлют имя хоста прокси как есть.
+function toRemoteDns(proxy) {
+  return String(proxy || '').replace(/^socks5:\/\//i, 'socks5h://');
+}
+
+// Пропускает ли прокси домен WhatsApp — так же, как коннектится движок.
+// 'ok' если web.whatsapp.com отвечает 200 через remote-DNS прокси; иначе 'blocked'
+// (многие дешёвые/датацентровые прокси режут WhatsApp по ruleset — curl по
+// локальному DNS этого НЕ ловит, отсюда были ложные «зелёные»).
+async function checkWhatsapp(proxy) {
+  const r = await curl(['-s', '-o', '/dev/null', '-w', '%{http_code}', '--max-time', '20',
+    '--proxy', toRemoteDns(proxy), 'https://web.whatsapp.com/'], 25000);
+  return String(r.out || '').trim() === '200' ? 'ok' : 'blocked';
+}
+
 // Returns { ok, ip, country, city, isp } or { ok:false, error }.
 async function testProxy(proxy) {
   const v = validate(proxy);
@@ -70,7 +88,10 @@ async function testProxy(proxy) {
     geo = JSON.parse(g.out || '{}');
   } catch { /* geo is best-effort */ }
 
-  return { ok: true, ip, country: geo.country || '', city: geo.city || '', isp: geo.isp || '' };
+  // Главная проверка: пропускает ли прокси именно WhatsApp (как коннектится движок).
+  const whatsapp = await checkWhatsapp(v.proxy);
+
+  return { ok: true, ip, country: geo.country || '', city: geo.city || '', isp: geo.isp || '', whatsapp };
 }
 
-module.exports = { testProxy, validate, normalizeProxy, isLocalProxy };
+module.exports = { testProxy, validate, normalizeProxy, isLocalProxy, toRemoteDns };

@@ -306,13 +306,20 @@ function groupRow(g) {
       const r = await api.testProxy(proxy);
       if (r.ok) {
         const geo = [r.city, r.country].filter(Boolean).join(', ');
-        resEl.textContent = `✓ ${r.ip}${geo ? ` — ${geo}` : ''}`;
-        resEl.classList.add('ok');
-        // сверяем страну IP с ожидаемой страной группы
-        const expected = GROUP_COUNTRY[g.id];
-        const ipCountry = String(r.country || '').trim();
-        if (expected && ipCountry && !expected.includes(ipCountry.toLowerCase())) {
-          geoEl.textContent = `⚠ IP ${ipCountry} ≠ страна группы`;
+        // главное: пропускает ли прокси WhatsApp (как коннектится движок)
+        const waBad = r.whatsapp === 'blocked';
+        const waTxt = r.whatsapp === 'ok' ? 'доступен' : waBad ? 'ЗАБЛОКИРОВАН' : '?';
+        resEl.className = 'group-result small ' + (waBad ? 'err' : r.whatsapp === 'ok' ? 'ok' : 'muted');
+        resEl.textContent = `${waBad ? '✕' : '✓'} ${r.ip}${geo ? ` — ${geo}` : ''} · WhatsApp: ${waTxt}`;
+        if (waBad) {
+          geoEl.textContent = '⚠ прокси режет WhatsApp по ruleset — движок не подключится, нужен другой прокси';
+        } else {
+          // сверяем страну IP с ожидаемой страной группы (второстепенно)
+          const expected = GROUP_COUNTRY[g.id];
+          const ipCountry = String(r.country || '').trim();
+          if (expected && ipCountry && !expected.includes(ipCountry.toLowerCase())) {
+            geoEl.textContent = `⚠ IP ${ipCountry} ≠ страна группы`;
+          }
         }
       } else {
         resEl.textContent = `✕ ${r.error || 'не удалось'}`;

@@ -36,3 +36,11 @@ test('isLocalProxy detects 127.0.0.1/localhost/::1 (incl. with auth), not remote
     assert.ok(!proxyTest.isLocalProxy(p), `${p} should be remote`);
   }
 });
+
+test('toRemoteDns forces socks5 -> socks5h (remote DNS), leaves others as-is', () => {
+  assert.strictEqual(proxyTest.toRemoteDns('socks5://user:pass@host:1080'), 'socks5h://user:pass@host:1080');
+  assert.strictEqual(proxyTest.toRemoteDns('SOCKS5://host:1080'), 'socks5h://host:1080');
+  assert.strictEqual(proxyTest.toRemoteDns('socks5h://host:1080'), 'socks5h://host:1080');
+  assert.strictEqual(proxyTest.toRemoteDns('http://host:8080'), 'http://host:8080');
+  assert.strictEqual(proxyTest.toRemoteDns('https://host:8080'), 'https://host:8080');
+});
