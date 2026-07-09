@@ -219,9 +219,11 @@ const EN = () => {
   // статусы «где я сейчас»
   out.push(...cross(['I’m currently ', 'I’m still ', 'I’m already '], ['at work', 'at home', 'on my way', 'in the office',
     'busy', 'free', 'in town', 'out and about'], '.'));
-  // планы/приглашения
-  out.push(...cross(['Shall we ', 'Let’s '], ['meet up tomorrow', 'call later', 'get lunch', 'have dinner together',
-    'watch a series', 'go for a stroll', 'take a short break', 'meet at the weekend'], '?'));
+  // планы/приглашения ("Shall we …?" — вопрос; "Let’s …." — предложение, без «?»)
+  const enPlans = ['meet up tomorrow', 'call later', 'get lunch', 'have dinner together',
+    'watch a series', 'go for a stroll', 'take a short break', 'meet at the weekend'];
+  out.push(...cross(['Shall we '], enPlans, '?'));
+  out.push(...cross(['Let’s '], enPlans, '.'));
   // погода
   out.push(...cross(['It’s ', 'Outside it’s '], ['warm today', 'cold today', 'sunny today', 'cloudy today', 'windy today',
     'foggy today', 'rainy today', 'lovely today'], '.'));

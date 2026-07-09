@@ -466,14 +466,14 @@ Shall we watch a series?
 Shall we go for a stroll?
 Shall we take a short break?
 Shall we meet at the weekend?
-Let’s meet up tomorrow?
-Let’s call later?
-Let’s get lunch?
-Let’s have dinner together?
-Let’s watch a series?
-Let’s go for a stroll?
-Let’s take a short break?
-Let’s meet at the weekend?
+Let’s meet up tomorrow.
+Let’s call later.
+Let’s get lunch.
+Let’s have dinner together.
+Let’s watch a series.
+Let’s go for a stroll.
+Let’s take a short break.
+Let’s meet at the weekend.
 It’s warm today.
 It’s cold today.
 It’s sunny today.
